@@ -1,4 +1,5 @@
 import { View, Text, Pressable } from 'react-native';
+import { Image } from 'expo-image';
 
 interface AssetItemProps {
   name: string;
@@ -7,6 +8,7 @@ interface AssetItemProps {
   price: string;
   percentageChange: number;
   color: string;
+  logoUrl?: string;
   onPress?: () => void;
   showDivider?: boolean;
 }
@@ -18,6 +20,7 @@ export function AssetItem({
   price,
   percentageChange,
   color,
+  logoUrl,
   onPress,
   showDivider = false,
 }: AssetItemProps) {
@@ -32,12 +35,20 @@ export function AssetItem({
     >
       <View className="flex-row items-center gap-3">
         <View
-          className="w-12 h-12 rounded-full items-center justify-center"
-          style={{ backgroundColor: color }}
+          className="w-12 h-12 rounded-full items-center justify-center overflow-hidden"
+          style={{ backgroundColor: logoUrl ? '#1C1C1E' : color }}
         >
-          <Text className="text-white font-bold text-base">
-            {symbol.charAt(0)}
-          </Text>
+          {logoUrl ? (
+            <Image
+              source={{ uri: logoUrl }}
+              style={{ width: 32, height: 32 }}
+              contentFit="contain"
+            />
+          ) : (
+            <Text className="text-white font-bold text-base">
+              {symbol.charAt(0)}
+            </Text>
+          )}
         </View>
         <View className="gap-0.5">
           <Text className="text-wallet-text font-semibold text-base">{name}</Text>

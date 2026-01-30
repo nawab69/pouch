@@ -168,6 +168,7 @@ export default function HomeScreen() {
                   price={token.balanceUsd ? `$${token.balanceUsd.toFixed(2)}` : '-'}
                   percentageChange={0}
                   color={getTokenColor(token.symbol)}
+                  logoUrl={token.logoUrl}
                   onPress={() => {}}
                   showDivider={index < tokens.length - 1}
                 />
