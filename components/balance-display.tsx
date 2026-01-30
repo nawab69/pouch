@@ -20,13 +20,13 @@ export function BalanceDisplay({
   const [dollars, cents] = formattedBalance.split('.');
 
   return (
-    <View className="items-center gap-3 py-8">
+    <View className="items-center py-8">
       <Text className="text-base text-wallet-text-secondary">Current balance</Text>
-      <View className="flex-row items-baseline">
+      <View className="flex-row items-baseline mt-3">
         <Text className="text-5xl font-extralight text-wallet-text">${dollars}</Text>
         <Text className="text-5xl font-extralight text-wallet-text-secondary">.{cents}</Text>
       </View>
-      <View className="flex-row items-center gap-1.5 mt-1">
+      <View className="flex-row items-center gap-1.5 mt-4">
         <Text className={`text-sm ${isPositive ? 'text-wallet-positive' : 'text-wallet-negative'}`}>
           {isPositive ? '▲' : '▼'}
         </Text>

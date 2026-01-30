@@ -1,10 +1,13 @@
-import { View, Text, ScrollView, Pressable } from 'react-native';
+import { View, Text, ScrollView, Pressable, StyleSheet, Dimensions } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { useRouter } from 'expo-router';
+import Svg, { Defs, RadialGradient, Stop, Rect } from 'react-native-svg';
 import { Header } from '@/components/header';
 import { BalanceDisplay } from '@/components/balance-display';
 import { ActionButton } from '@/components/action-button';
 import { AssetItem } from '@/components/asset-item';
+
+const { width: SCREEN_WIDTH } = Dimensions.get('window');
 
 const MOCK_WALLET_ADDRESS = '0x245323';
 
@@ -45,6 +48,15 @@ const MOCK_ASSETS = [
     percentageChange: 0.23,
     color: '#26A17B',
   },
+  {
+    id: '5',
+    name: 'Polkadot',
+    symbol: 'DOT',
+    amount: '156.42',
+    price: '$7.23',
+    percentageChange: 4.56,
+    color: '#E6007A',
+  },
 ];
 
 export default function HomeScreen() {
@@ -52,6 +64,26 @@ export default function HomeScreen() {
 
   return (
     <SafeAreaView className="flex-1 bg-wallet-bg" edges={['top']}>
+      {/* Ambient green glow */}
+      <View style={styles.glowContainer} pointerEvents="none">
+        <Svg width={SCREEN_WIDTH} height={500}>
+          <Defs>
+            <RadialGradient
+              id="glow"
+              cx="0%"
+              cy="0%"
+              rx="70%"
+              ry="60%"
+            >
+              <Stop offset="0%" stopColor="#B8F25B" stopOpacity="0.15" />
+              <Stop offset="40%" stopColor="#B8F25B" stopOpacity="0.06" />
+              <Stop offset="100%" stopColor="#B8F25B" stopOpacity="0" />
+            </RadialGradient>
+          </Defs>
+          <Rect x="0" y="0" width={SCREEN_WIDTH} height={500} fill="url(#glow)" />
+        </Svg>
+      </View>
+
       <ScrollView
         className="flex-1"
         showsVerticalScrollIndicator={false}
@@ -104,3 +136,13 @@ export default function HomeScreen() {
     </SafeAreaView>
   );
 }
+
+const styles = StyleSheet.create({
+  glowContainer: {
+    position: 'absolute',
+    top: -50,
+    left: 0,
+    right: 0,
+    zIndex: 0,
+  },
+});
