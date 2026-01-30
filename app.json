@@ -1,11 +1,11 @@
 {
   "expo": {
-    "name": "crypto-wallet",
-    "slug": "crypto-wallet",
+    "name": "Pouch",
+    "slug": "pouch",
     "version": "1.0.0",
     "orientation": "portrait",
     "icon": "./assets/images/icon.png",
-    "scheme": "cryptowallet",
+    "scheme": "pouch",
     "userInterfaceStyle": "automatic",
     "newArchEnabled": true,
     "ios": {

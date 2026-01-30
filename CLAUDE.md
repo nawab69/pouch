@@ -4,7 +4,7 @@ This file provides guidance to Claude Code (claude.ai/code) when working with co
 
 ## Project Overview
 
-This is a React Native/Expo mobile app scaffold for a crypto wallet. Currently in the initial template phase with no wallet functionality implemented yet - ready for feature development.
+Pouch is a React Native/Expo crypto wallet app. Currently in the initial template phase - ready for feature development.
 
 **Stack:** Expo SDK 54, React Native 0.81, React 19, TypeScript 5.9, Tailwind CSS v3 + NativeWind v4
 

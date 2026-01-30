@@ -19,10 +19,10 @@ export default function HomeScreen() {
       {/* Title */}
       <View className="items-center gap-2">
         <Text className="text-3xl font-bold text-white">
-          Expo + Tailwind
+          Pouch
         </Text>
         <Text className="text-base text-gray-400 text-center">
-          A minimal template to get started
+          Your crypto, your pocket
         </Text>
       </View>
 
