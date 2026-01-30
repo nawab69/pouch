@@ -133,11 +133,12 @@ const styles = StyleSheet.create({
     letterSpacing: -0.5,
   },
   accentWord: {
-    fontFamily: 'Outfit_700Bold',
-    fontSize: 44,
+    fontFamily: 'PlayfairDisplay_700Bold_Italic',
+    fontSize: 48,
     color: '#B8F25B',
-    lineHeight: 52,
-    letterSpacing: -0.5,
+    lineHeight: 56,
+    letterSpacing: 0,
+    fontStyle: 'italic',
   },
   description: {
     fontFamily: 'Outfit_400Regular',

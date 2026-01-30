@@ -6,7 +6,6 @@ import { useSharedValue } from 'react-native-reanimated';
 import Svg, { Defs, RadialGradient, Stop, Rect } from 'react-native-svg';
 
 import { OnboardingPage } from '@/components/onboarding/onboarding-page';
-import { OnboardingPagination } from '@/components/onboarding/onboarding-pagination';
 import { OnboardingNavigation } from '@/components/onboarding/onboarding-navigation';
 import { WalletIllustration } from '@/components/onboarding/illustrations/wallet-illustration';
 import { PortfolioIllustration } from '@/components/onboarding/illustrations/portfolio-illustration';
@@ -152,11 +151,11 @@ export default function OnboardingScreen() {
 
       {/* Bottom navigation area */}
       <View style={[styles.bottomContainer, { paddingBottom: insets.bottom + 20 }]}>
-        <OnboardingPagination totalPages={PAGES.length} scrollX={scrollX} />
-        <View style={styles.navigationSpacer} />
         <OnboardingNavigation
           currentPage={currentPage}
           totalPages={PAGES.length}
+          scrollX={scrollX}
+          screenWidth={SCREEN_WIDTH}
           onSkip={handleSkip}
           onNext={handleNext}
         />
@@ -179,8 +178,5 @@ const styles = StyleSheet.create({
     left: 0,
     right: 0,
     paddingTop: 20,
-  },
-  navigationSpacer: {
-    height: 30,
   },
 });
