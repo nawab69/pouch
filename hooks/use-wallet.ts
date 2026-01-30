@@ -1,10 +1,12 @@
 import { useEffect, useState, useCallback } from 'react';
 import * as SecureStore from 'expo-secure-store';
 import AsyncStorage from '@react-native-async-storage/async-storage';
+import { deriveWalletFromMnemonic } from '@/services/blockchain';
 
 const WALLET_KEY = '@pouch/has_wallet';
 const WALLET_ADDRESS_KEY = 'pouch_wallet_address';
 const WALLET_MNEMONIC_KEY = 'pouch_wallet_mnemonic';
+const WALLET_PRIVATE_KEY = 'pouch_wallet_private_key';
 
 export function useWallet() {
   const [hasWallet, setHasWallet] = useState<boolean | null>(null);
@@ -35,16 +37,21 @@ export function useWallet() {
 
   const createWallet = useCallback(async (mnemonic: string[]) => {
     try {
-      // Generate a mock wallet address from mnemonic
-      // In production, this would derive the actual address using bip39/bip32
-      const mockAddress = generateMockAddress(mnemonic);
+      const phrase = mnemonic.join(' ');
+
+      // Derive wallet using ethers.js BIP44 derivation
+      const derivedWallet = deriveWalletFromMnemonic(phrase);
 
       // Store mnemonic securely
-      await SecureStore.setItemAsync(WALLET_MNEMONIC_KEY, mnemonic.join(' '));
-      await SecureStore.setItemAsync(WALLET_ADDRESS_KEY, mockAddress);
+      await SecureStore.setItemAsync(WALLET_MNEMONIC_KEY, phrase);
+      // Store address
+      await SecureStore.setItemAsync(WALLET_ADDRESS_KEY, derivedWallet.address);
+      // Store private key for transaction signing
+      await SecureStore.setItemAsync(WALLET_PRIVATE_KEY, derivedWallet.privateKey);
+      // Mark wallet as created
       await AsyncStorage.setItem(WALLET_KEY, 'true');
 
-      setWalletAddress(mockAddress);
+      setWalletAddress(derivedWallet.address);
       setHasWallet(true);
     } catch (error) {
       console.warn('Error creating wallet:', error);
@@ -54,15 +61,21 @@ export function useWallet() {
 
   const importWallet = useCallback(async (mnemonic: string[]) => {
     try {
-      // Generate address from imported mnemonic
-      const mockAddress = generateMockAddress(mnemonic);
+      const phrase = mnemonic.join(' ');
+
+      // Derive wallet using ethers.js BIP44 derivation
+      const derivedWallet = deriveWalletFromMnemonic(phrase);
 
       // Store mnemonic securely
-      await SecureStore.setItemAsync(WALLET_MNEMONIC_KEY, mnemonic.join(' '));
-      await SecureStore.setItemAsync(WALLET_ADDRESS_KEY, mockAddress);
+      await SecureStore.setItemAsync(WALLET_MNEMONIC_KEY, phrase);
+      // Store address
+      await SecureStore.setItemAsync(WALLET_ADDRESS_KEY, derivedWallet.address);
+      // Store private key for transaction signing
+      await SecureStore.setItemAsync(WALLET_PRIVATE_KEY, derivedWallet.privateKey);
+      // Mark wallet as created
       await AsyncStorage.setItem(WALLET_KEY, 'true');
 
-      setWalletAddress(mockAddress);
+      setWalletAddress(derivedWallet.address);
       setHasWallet(true);
     } catch (error) {
       console.warn('Error importing wallet:', error);
@@ -74,11 +87,38 @@ export function useWallet() {
     try {
       await SecureStore.deleteItemAsync(WALLET_MNEMONIC_KEY);
       await SecureStore.deleteItemAsync(WALLET_ADDRESS_KEY);
+      await SecureStore.deleteItemAsync(WALLET_PRIVATE_KEY);
       await AsyncStorage.removeItem(WALLET_KEY);
       setHasWallet(false);
       setWalletAddress(null);
     } catch (error) {
       console.warn('Error resetting wallet:', error);
+    }
+  }, []);
+
+  /**
+   * Get the private key for transaction signing
+   * This should only be called when needed for signing
+   */
+  const getPrivateKey = useCallback(async (): Promise<string | null> => {
+    try {
+      return await SecureStore.getItemAsync(WALLET_PRIVATE_KEY);
+    } catch (error) {
+      console.warn('Error getting private key:', error);
+      return null;
+    }
+  }, []);
+
+  /**
+   * Get the mnemonic phrase
+   * This should only be called when user explicitly requests to view it
+   */
+  const getMnemonic = useCallback(async (): Promise<string | null> => {
+    try {
+      return await SecureStore.getItemAsync(WALLET_MNEMONIC_KEY);
+    } catch (error) {
+      console.warn('Error getting mnemonic:', error);
+      return null;
     }
   }, []);
 
@@ -89,17 +129,7 @@ export function useWallet() {
     createWallet,
     importWallet,
     resetWallet,
+    getPrivateKey,
+    getMnemonic,
   };
-}
-
-// Generate a mock wallet address for demo purposes
-function generateMockAddress(mnemonic: string[]): string {
-  // Create a deterministic "address" from mnemonic
-  // In production, use proper key derivation
-  const hash = mnemonic.join('').split('').reduce((acc, char) => {
-    return ((acc << 5) - acc + char.charCodeAt(0)) | 0;
-  }, 0);
-
-  const hexHash = Math.abs(hash).toString(16).padStart(8, '0');
-  return `0x${hexHash}${'0'.repeat(32)}${hexHash}`;
 }

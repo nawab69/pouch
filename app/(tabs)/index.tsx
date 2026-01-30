@@ -1,66 +1,61 @@
-import { View, Text, ScrollView, Pressable, StyleSheet, Dimensions } from 'react-native';
+import { View, Text, ScrollView, Pressable, StyleSheet, Dimensions, RefreshControl } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { useRouter } from 'expo-router';
+import { useState, useCallback } from 'react';
 import Svg, { Defs, RadialGradient, Stop, Rect } from 'react-native-svg';
 import { Header } from '@/components/header';
 import { BalanceDisplay } from '@/components/balance-display';
 import { ActionButton } from '@/components/action-button';
 import { AssetItem } from '@/components/asset-item';
+import { NetworkBadge } from '@/components/network-badge';
+import { useWallet } from '@/hooks/use-wallet';
+import { useNetwork } from '@/hooks/use-network';
+import { useTokens } from '@/hooks/use-tokens';
+import { formatAddress } from '@/services/blockchain';
 
 const { width: SCREEN_WIDTH } = Dimensions.get('window');
 
-const MOCK_WALLET_ADDRESS = '0x245323';
-
-const MOCK_ASSETS = [
-  {
-    id: '1',
-    name: 'Bitcoin',
-    symbol: 'BTC',
-    amount: '0.23234145',
-    price: '$102,241.02',
-    percentageChange: 0.23,
-    color: '#F7931A',
-  },
-  {
-    id: '2',
-    name: 'Stellar',
-    symbol: 'XLM',
-    amount: '23.3562',
-    price: '$0.1351',
-    percentageChange: -1.43,
-    color: '#7D8B8A',
-  },
-  {
-    id: '3',
-    name: 'Ethereum',
-    symbol: 'ETH',
-    amount: '425.135115',
-    price: '$4,223',
-    percentageChange: 23.23,
-    color: '#627EEA',
-  },
-  {
-    id: '4',
-    name: 'Tether',
-    symbol: 'USDT',
-    amount: '5,234.00',
-    price: '$1.00',
-    percentageChange: 0.23,
-    color: '#26A17B',
-  },
-  {
-    id: '5',
-    name: 'Polkadot',
-    symbol: 'DOT',
-    amount: '156.42',
-    price: '$7.23',
-    percentageChange: 4.56,
-    color: '#E6007A',
-  },
-];
-
 export default function HomeScreen() {
   const router = useRouter();
+  const { walletAddress } = useWallet();
+  const { selectedNetworkId, selectedNetwork, networkType } = useNetwork();
+  const { tokens, nativeToken, isLoading, refreshTokens } = useTokens({
+    address: walletAddress,
+    networkId: selectedNetworkId,
+    networkType,
+  });
+
+  const [refreshing, setRefreshing] = useState(false);
+
+  const onRefresh = useCallback(async () => {
+    setRefreshing(true);
+    await refreshTokens();
+    setRefreshing(false);
+  }, [refreshTokens]);
+
+  // Calculate total balance (for now just show native token balance)
+  const displayBalance = nativeToken
+    ? parseFloat(nativeToken.balanceFormatted)
+    : 0;
+
+  // Format wallet address for display
+  const displayAddress = walletAddress
+    ? formatAddress(walletAddress, 6, 4)
+    : '0x...';
+
+  // Get token color based on symbol
+  const getTokenColor = (symbol: string): string => {
+    const colors: Record<string, string> = {
+      ETH: '#627EEA',
+      MATIC: '#8247E5',
+      USDT: '#26A17B',
+      USDC: '#2775CA',
+      DAI: '#F5AC37',
+      WETH: '#EC4899',
+      LINK: '#375BD2',
+    };
+    return colors[symbol] ?? '#8E8E93';
+  };
 
   return (
     <SafeAreaView className="flex-1 bg-wallet-bg" edges={['top']}>
@@ -87,23 +82,39 @@ export default function HomeScreen() {
       <ScrollView
         className="flex-1"
         showsVerticalScrollIndicator={false}
+        refreshControl={
+          <RefreshControl
+            refreshing={refreshing}
+            onRefresh={onRefresh}
+            tintColor="#B8F25B"
+          />
+        }
       >
         <Header
-          walletAddress={MOCK_WALLET_ADDRESS}
+          walletAddress={displayAddress}
           onProfilePress={() => {}}
           onNotificationPress={() => {}}
           onWalletPress={() => {}}
         />
 
+        {/* Network Badge */}
+        <View className="items-center mb-2">
+          <NetworkBadge
+            network={selectedNetwork}
+            networkType={networkType}
+            size="small"
+          />
+        </View>
+
         <BalanceDisplay
-          balance={98230.02}
-          percentageChange={0.23}
+          balance={displayBalance}
+          percentageChange={0}
           timeframe="1d"
         />
 
         <View className="flex-row justify-center gap-12 py-6">
-          <ActionButton type="receive" onPress={() => {}} />
-          <ActionButton type="send" onPress={() => {}} />
+          <ActionButton type="receive" onPress={() => router.push('/receive')} />
+          <ActionButton type="send" onPress={() => router.push('/send')} />
           <ActionButton type="swap" onPress={() => router.push('/swap')} />
         </View>
 
@@ -117,19 +128,32 @@ export default function HomeScreen() {
           </View>
 
           <View className="px-5 pb-32">
-            {MOCK_ASSETS.map((asset, index) => (
-              <AssetItem
-                key={asset.id}
-                name={asset.name}
-                symbol={asset.symbol}
-                amount={asset.amount}
-                price={asset.price}
-                percentageChange={asset.percentageChange}
-                color={asset.color}
-                onPress={() => {}}
-                showDivider={index < MOCK_ASSETS.length - 1}
-              />
-            ))}
+            {isLoading && tokens.length === 0 ? (
+              <View className="py-8 items-center">
+                <Text className="text-wallet-text-secondary">Loading tokens...</Text>
+              </View>
+            ) : tokens.length === 0 ? (
+              <View className="py-8 items-center">
+                <Text className="text-wallet-text-secondary">No tokens found</Text>
+                <Text className="text-wallet-text-secondary text-sm mt-1">
+                  Add some {selectedNetwork.symbol} to get started
+                </Text>
+              </View>
+            ) : (
+              tokens.map((token, index) => (
+                <AssetItem
+                  key={token.contractAddress ?? 'native'}
+                  name={token.name}
+                  symbol={token.symbol}
+                  amount={token.balanceFormatted}
+                  price={token.balanceUsd ? `$${token.balanceUsd.toFixed(2)}` : '-'}
+                  percentageChange={0}
+                  color={getTokenColor(token.symbol)}
+                  onPress={() => {}}
+                  showDivider={index < tokens.length - 1}
+                />
+              ))
+            )}
           </View>
         </View>
       </ScrollView>
