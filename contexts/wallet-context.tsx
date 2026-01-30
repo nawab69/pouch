@@ -1,0 +1,244 @@
+import { createContext, useContext, useEffect, useState, useCallback, ReactNode } from 'react';
+import * as SecureStore from 'expo-secure-store';
+import AsyncStorage from '@react-native-async-storage/async-storage';
+import { deriveWalletFromMnemonic } from '@/services/blockchain';
+import { Account } from '@/types/blockchain';
+
+const WALLET_KEY = '@pouch/has_wallet';
+const WALLET_MNEMONIC_KEY = 'pouch_wallet_mnemonic';
+const ACCOUNTS_KEY = '@pouch/accounts';
+const SELECTED_ACCOUNT_KEY = '@pouch/selected_account';
+
+interface WalletContextType {
+  hasWallet: boolean | null;
+  isLoading: boolean;
+  accounts: Account[];
+  selectedAccount: Account | null;
+  walletAddress: string | null;
+  createWallet: (mnemonic: string[]) => Promise<void>;
+  importWallet: (mnemonic: string[]) => Promise<void>;
+  resetWallet: () => Promise<void>;
+  getPrivateKey: () => Promise<string | null>;
+  getMnemonic: () => Promise<string | null>;
+  addAccount: () => Promise<Account>;
+  selectAccount: (index: number) => Promise<void>;
+  renameAccount: (index: number, name: string) => Promise<void>;
+}
+
+const WalletContext = createContext<WalletContextType | null>(null);
+
+export function WalletProvider({ children }: { children: ReactNode }) {
+  const [hasWallet, setHasWallet] = useState<boolean | null>(null);
+  const [isLoading, setIsLoading] = useState(true);
+  const [accounts, setAccounts] = useState<Account[]>([]);
+  const [selectedAccountIndex, setSelectedAccountIndex] = useState(0);
+
+  const selectedAccount = accounts[selectedAccountIndex] ?? null;
+  const walletAddress = selectedAccount?.address ?? null;
+
+  useEffect(() => {
+    checkWalletStatus();
+  }, []);
+
+  const checkWalletStatus = async () => {
+    try {
+      const value = await AsyncStorage.getItem(WALLET_KEY);
+      const hasExistingWallet = value === 'true';
+      setHasWallet(hasExistingWallet);
+
+      if (hasExistingWallet) {
+        // Load accounts
+        const accountsJson = await AsyncStorage.getItem(ACCOUNTS_KEY);
+        if (accountsJson) {
+          const loadedAccounts = JSON.parse(accountsJson) as Account[];
+          setAccounts(loadedAccounts);
+        } else {
+          // Migration: wallet exists but no accounts data
+          // Derive account from stored mnemonic
+          const mnemonic = await SecureStore.getItemAsync(WALLET_MNEMONIC_KEY);
+          if (mnemonic) {
+            const derivedWallet = deriveWalletFromMnemonic(mnemonic, 0);
+
+            // Store private key if not already stored
+            await SecureStore.setItemAsync(`pouch_pk_0`, derivedWallet.privateKey);
+
+            const firstAccount: Account = {
+              index: 0,
+              name: 'Account 1',
+              address: derivedWallet.address,
+              path: derivedWallet.path,
+            };
+
+            await AsyncStorage.setItem(ACCOUNTS_KEY, JSON.stringify([firstAccount]));
+            await AsyncStorage.setItem(SELECTED_ACCOUNT_KEY, '0');
+            setAccounts([firstAccount]);
+          }
+        }
+
+        // Load selected account index
+        const selectedIndex = await AsyncStorage.getItem(SELECTED_ACCOUNT_KEY);
+        if (selectedIndex) {
+          setSelectedAccountIndex(parseInt(selectedIndex, 10));
+        }
+      }
+    } catch (error) {
+      console.warn('Error reading wallet status:', error);
+      setHasWallet(false);
+    } finally {
+      setIsLoading(false);
+    }
+  };
+
+  const saveAccounts = async (newAccounts: Account[]) => {
+    await AsyncStorage.setItem(ACCOUNTS_KEY, JSON.stringify(newAccounts));
+    setAccounts(newAccounts);
+  };
+
+  const createWallet = useCallback(async (mnemonic: string[]) => {
+    try {
+      const phrase = mnemonic.join(' ');
+      const derivedWallet = deriveWalletFromMnemonic(phrase, 0);
+
+      // Store mnemonic securely
+      await SecureStore.setItemAsync(WALLET_MNEMONIC_KEY, phrase);
+
+      // Store private key for account 0
+      await SecureStore.setItemAsync(`pouch_pk_0`, derivedWallet.privateKey);
+
+      // Create first account
+      const firstAccount: Account = {
+        index: 0,
+        name: 'Account 1',
+        address: derivedWallet.address,
+        path: derivedWallet.path,
+      };
+
+      await saveAccounts([firstAccount]);
+      await AsyncStorage.setItem(SELECTED_ACCOUNT_KEY, '0');
+      await AsyncStorage.setItem(WALLET_KEY, 'true');
+
+      setSelectedAccountIndex(0);
+      setHasWallet(true);
+    } catch (error) {
+      console.warn('Error creating wallet:', error);
+      throw error;
+    }
+  }, []);
+
+  const importWallet = useCallback(async (mnemonic: string[]) => {
+    // Same as createWallet for importing
+    await createWallet(mnemonic);
+  }, [createWallet]);
+
+  const resetWallet = useCallback(async () => {
+    try {
+      // Delete all private keys
+      for (const account of accounts) {
+        await SecureStore.deleteItemAsync(`pouch_pk_${account.index}`);
+      }
+
+      await SecureStore.deleteItemAsync(WALLET_MNEMONIC_KEY);
+      await AsyncStorage.removeItem(WALLET_KEY);
+      await AsyncStorage.removeItem(ACCOUNTS_KEY);
+      await AsyncStorage.removeItem(SELECTED_ACCOUNT_KEY);
+
+      setHasWallet(false);
+      setAccounts([]);
+      setSelectedAccountIndex(0);
+    } catch (error) {
+      console.warn('Error resetting wallet:', error);
+    }
+  }, [accounts]);
+
+  const getPrivateKey = useCallback(async (): Promise<string | null> => {
+    try {
+      return await SecureStore.getItemAsync(`pouch_pk_${selectedAccountIndex}`);
+    } catch (error) {
+      console.warn('Error getting private key:', error);
+      return null;
+    }
+  }, [selectedAccountIndex]);
+
+  const getMnemonic = useCallback(async (): Promise<string | null> => {
+    try {
+      return await SecureStore.getItemAsync(WALLET_MNEMONIC_KEY);
+    } catch (error) {
+      console.warn('Error getting mnemonic:', error);
+      return null;
+    }
+  }, []);
+
+  const addAccount = useCallback(async (): Promise<Account> => {
+    try {
+      const mnemonic = await getMnemonic();
+      if (!mnemonic) {
+        throw new Error('No mnemonic found');
+      }
+
+      const newIndex = accounts.length;
+      const derivedWallet = deriveWalletFromMnemonic(mnemonic, newIndex);
+
+      // Store private key for new account
+      await SecureStore.setItemAsync(`pouch_pk_${newIndex}`, derivedWallet.privateKey);
+
+      const newAccount: Account = {
+        index: newIndex,
+        name: `Account ${newIndex + 1}`,
+        address: derivedWallet.address,
+        path: derivedWallet.path,
+      };
+
+      const newAccounts = [...accounts, newAccount];
+      await saveAccounts(newAccounts);
+
+      return newAccount;
+    } catch (error) {
+      console.warn('Error adding account:', error);
+      throw error;
+    }
+  }, [accounts, getMnemonic]);
+
+  const selectAccount = useCallback(async (index: number) => {
+    if (index >= 0 && index < accounts.length) {
+      await AsyncStorage.setItem(SELECTED_ACCOUNT_KEY, index.toString());
+      setSelectedAccountIndex(index);
+    }
+  }, [accounts.length]);
+
+  const renameAccount = useCallback(async (index: number, name: string) => {
+    const newAccounts = accounts.map((acc) =>
+      acc.index === index ? { ...acc, name } : acc
+    );
+    await saveAccounts(newAccounts);
+  }, [accounts]);
+
+  return (
+    <WalletContext.Provider
+      value={{
+        hasWallet,
+        isLoading,
+        accounts,
+        selectedAccount,
+        walletAddress,
+        createWallet,
+        importWallet,
+        resetWallet,
+        getPrivateKey,
+        getMnemonic,
+        addAccount,
+        selectAccount,
+        renameAccount,
+      }}
+    >
+      {children}
+    </WalletContext.Provider>
+  );
+}
+
+export function useWallet() {
+  const context = useContext(WalletContext);
+  if (!context) {
+    throw new Error('useWallet must be used within a WalletProvider');
+  }
+  return context;
+}

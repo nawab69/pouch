@@ -8,6 +8,7 @@ import { BalanceDisplay } from '@/components/balance-display';
 import { ActionButton } from '@/components/action-button';
 import { AssetItem } from '@/components/asset-item';
 import { NetworkBadge } from '@/components/network-badge';
+import { AccountSwitcher } from '@/components/account-switcher';
 import { useWallet } from '@/hooks/use-wallet';
 import { useNetwork } from '@/hooks/use-network';
 import { useTokens } from '@/hooks/use-tokens';
@@ -17,8 +18,16 @@ const { width: SCREEN_WIDTH } = Dimensions.get('window');
 
 export default function HomeScreen() {
   const router = useRouter();
-  const { walletAddress } = useWallet();
-  const { selectedNetworkId, selectedNetwork, networkType } = useNetwork();
+  const {
+    walletAddress,
+    accounts,
+    selectedAccount,
+    selectAccount,
+    addAccount,
+    renameAccount,
+    isLoading: isWalletLoading,
+  } = useWallet();
+  const { selectedNetworkId, selectedNetwork, networkType, isLoading: isNetworkLoading } = useNetwork();
   const { tokens, nativeToken, isLoading, refreshTokens } = useTokens({
     address: walletAddress,
     networkId: selectedNetworkId,
@@ -26,6 +35,16 @@ export default function HomeScreen() {
   });
 
   const [refreshing, setRefreshing] = useState(false);
+  const [showAccountSwitcher, setShowAccountSwitcher] = useState(false);
+
+  // Show loading state while contexts initialize
+  if (isWalletLoading || isNetworkLoading) {
+    return (
+      <SafeAreaView className="flex-1 bg-wallet-bg items-center justify-center" edges={['top']}>
+        <Text className="text-wallet-text-secondary">Loading...</Text>
+      </SafeAreaView>
+    );
+  }
 
   const onRefresh = useCallback(async () => {
     setRefreshing(true);
@@ -94,7 +113,7 @@ export default function HomeScreen() {
           walletAddress={displayAddress}
           onProfilePress={() => {}}
           onNotificationPress={() => {}}
-          onWalletPress={() => {}}
+          onWalletPress={() => setShowAccountSwitcher(true)}
         />
 
         {/* Network Badge */}
@@ -157,6 +176,17 @@ export default function HomeScreen() {
           </View>
         </View>
       </ScrollView>
+
+      {/* Account Switcher Modal */}
+      <AccountSwitcher
+        visible={showAccountSwitcher}
+        onClose={() => setShowAccountSwitcher(false)}
+        accounts={accounts}
+        selectedAccount={selectedAccount}
+        onSelectAccount={selectAccount}
+        onAddAccount={addAccount}
+        onRenameAccount={renameAccount}
+      />
     </SafeAreaView>
   );
 }

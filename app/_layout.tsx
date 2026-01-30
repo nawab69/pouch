@@ -12,6 +12,7 @@ import { useFonts, Outfit_400Regular, Outfit_500Medium, Outfit_600SemiBold, Outf
 import { PlayfairDisplay_700Bold_Italic } from '@expo-google-fonts/playfair-display';
 import { SplashScreen } from '@/components/splash-screen';
 import { NetworkProvider } from '@/contexts/network-context';
+import { WalletProvider } from '@/contexts/wallet-context';
 
 const ONBOARDING_KEY = '@pouch/onboarding_complete';
 const WALLET_KEY = '@pouch/has_wallet';
@@ -78,21 +79,23 @@ export default function RootLayout() {
   return (
     <GestureHandlerRootView style={{ flex: 1 }}>
       <ThemeProvider value={DarkTheme}>
-        <NetworkProvider>
-          <View style={{ flex: 1, backgroundColor: '#0D1411' }}>
-            <Stack screenOptions={{ headerShown: false, animation: 'none' }}>
-              <Stack.Screen name="onboarding" />
-              <Stack.Screen name="wallet-setup" />
-              <Stack.Screen name="(tabs)" />
-            </Stack>
-            <StatusBar style="light" />
+        <WalletProvider>
+          <NetworkProvider>
+            <View style={{ flex: 1, backgroundColor: '#0D1411' }}>
+              <Stack screenOptions={{ headerShown: false, animation: 'none' }}>
+                <Stack.Screen name="onboarding" />
+                <Stack.Screen name="wallet-setup" />
+                <Stack.Screen name="(tabs)" />
+              </Stack>
+              <StatusBar style="light" />
 
-            {/* Animated splash screen overlay */}
-            {!splashComplete && (
-              <SplashScreen onAnimationComplete={handleSplashComplete} />
-            )}
-          </View>
-        </NetworkProvider>
+              {/* Animated splash screen overlay */}
+              {!splashComplete && (
+                <SplashScreen onAnimationComplete={handleSplashComplete} />
+              )}
+            </View>
+          </NetworkProvider>
+        </WalletProvider>
       </ThemeProvider>
     </GestureHandlerRootView>
   );

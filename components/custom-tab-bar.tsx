@@ -24,6 +24,13 @@ export function CustomTabBar({ state, navigation }: BottomTabBarProps) {
   const insets = useSafeAreaInsets();
   const bottomOffset = Math.max(insets.bottom, 16);
   const [containerWidth, setContainerWidth] = useState(0);
+  const [isReady, setIsReady] = useState(false);
+
+  // Delay rendering to prevent blank screen issues
+  useEffect(() => {
+    const timer = setTimeout(() => setIsReady(true), 50);
+    return () => clearTimeout(timer);
+  }, []);
 
   const tabCount = state.routes.length;
   const tabWidth = containerWidth / tabCount;
@@ -83,6 +90,29 @@ export function CustomTabBar({ state, navigation }: BottomTabBarProps) {
   const handleLayout = (event: LayoutChangeEvent) => {
     setContainerWidth(event.nativeEvent.layout.width);
   };
+
+  // Don't render BlurView until ready to prevent blank screens
+  if (!isReady) {
+    return (
+      <View className="absolute left-5 right-5" style={{ bottom: bottomOffset }}>
+        <View style={[styles.outerContainer, { backgroundColor: 'rgba(20, 25, 22, 0.9)' }]} onLayout={handleLayout}>
+          <View style={{ paddingVertical: 12 }}>
+            <View className="flex-row items-center justify-around py-3">
+              {state.routes.map((route, index) => {
+                const isFocused = state.index === index;
+                const iconName = TAB_ICONS[route.name] || 'circle';
+                return (
+                  <View key={route.key} className="items-center justify-center w-14 h-14">
+                    <Feather name={iconName} size={24} color={isFocused ? '#B8F25B' : '#5C6660'} />
+                  </View>
+                );
+              })}
+            </View>
+          </View>
+        </View>
+      </View>
+    );
+  }
 
   return (
     <View className="absolute left-5 right-5" style={{ bottom: bottomOffset }}>

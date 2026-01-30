@@ -94,3 +94,11 @@ export interface DerivedWallet extends WalletInfo {
   mnemonic: string;
   path: string;
 }
+
+// Account types
+export interface Account {
+  index: number;
+  name: string;
+  address: string;
+  path: string;
+}

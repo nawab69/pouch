@@ -14,9 +14,19 @@ export default function SettingsScreen() {
     selectedNetwork,
     chainId,
     isTestnet,
+    isLoading,
     changeNetwork,
     toggleNetworkType,
   } = useNetwork();
+
+  // Show loading state while context initializes
+  if (isLoading) {
+    return (
+      <SafeAreaView className="flex-1 bg-wallet-bg items-center justify-center" edges={['top']}>
+        <Text className="text-wallet-text-secondary">Loading...</Text>
+      </SafeAreaView>
+    );
+  }
 
   const handleResetOnboarding = async () => {
     await resetOnboarding();
