@@ -1,0 +1,20 @@
+import { Stack } from 'expo-router';
+
+export default function WalletSetupLayout() {
+  return (
+    <Stack
+      screenOptions={{
+        headerShown: false,
+        animation: 'slide_from_right',
+        contentStyle: { backgroundColor: '#0D1411' },
+      }}
+    >
+      <Stack.Screen name="index" options={{ animation: 'fade' }} />
+      <Stack.Screen name="create/generate" />
+      <Stack.Screen name="create/backup" />
+      <Stack.Screen name="create/confirm" />
+      <Stack.Screen name="import" />
+      <Stack.Screen name="success" options={{ animation: 'fade', gestureEnabled: false }} />
+    </Stack>
+  );
+}

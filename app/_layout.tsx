@@ -1,3 +1,4 @@
+import "@/utils/crypto-polyfill";
 import "../global.css";
 import { useEffect, useState, useCallback } from 'react';
 import { View } from 'react-native';
@@ -12,10 +13,12 @@ import { PlayfairDisplay_700Bold_Italic } from '@expo-google-fonts/playfair-disp
 import { SplashScreen } from '@/components/splash-screen';
 
 const ONBOARDING_KEY = '@pouch/onboarding_complete';
+const WALLET_KEY = '@pouch/has_wallet';
 
 export default function RootLayout() {
   const [splashComplete, setSplashComplete] = useState(false);
   const [hasSeenOnboarding, setHasSeenOnboarding] = useState<boolean | null>(null);
+  const [hasWallet, setHasWallet] = useState<boolean | null>(null);
   const [hasNavigated, setHasNavigated] = useState(false);
 
   const router = useRouter();
@@ -34,26 +37,38 @@ export default function RootLayout() {
     ExpoSplashScreen.hideAsync();
   }, []);
 
-  // Load onboarding status
+  // Load onboarding and wallet status
   useEffect(() => {
-    AsyncStorage.getItem(ONBOARDING_KEY)
-      .then(value => setHasSeenOnboarding(value === 'true'))
-      .catch(() => setHasSeenOnboarding(false));
+    Promise.all([
+      AsyncStorage.getItem(ONBOARDING_KEY),
+      AsyncStorage.getItem(WALLET_KEY),
+    ])
+      .then(([onboardingValue, walletValue]) => {
+        setHasSeenOnboarding(onboardingValue === 'true');
+        setHasWallet(walletValue === 'true');
+      })
+      .catch(() => {
+        setHasSeenOnboarding(false);
+        setHasWallet(false);
+      });
   }, []);
 
   // Navigate once router is ready
+  // Flow: Onboarding → Wallet Setup → Home
   useEffect(() => {
-    if (hasSeenOnboarding === null || hasNavigated) return;
+    if (hasSeenOnboarding === null || hasWallet === null || hasNavigated) return;
     if (!rootNavigationState?.key) return;
 
     setHasNavigated(true);
 
-    if (hasSeenOnboarding) {
-      router.replace('/(tabs)');
-    } else {
+    if (!hasSeenOnboarding) {
       router.replace('/onboarding');
+    } else if (!hasWallet) {
+      router.replace('/wallet-setup');
+    } else {
+      router.replace('/(tabs)');
     }
-  }, [hasSeenOnboarding, hasNavigated, rootNavigationState?.key, router]);
+  }, [hasSeenOnboarding, hasWallet, hasNavigated, rootNavigationState?.key, router]);
 
   const handleSplashComplete = useCallback(() => {
     setSplashComplete(true);
@@ -65,6 +80,7 @@ export default function RootLayout() {
         <View style={{ flex: 1, backgroundColor: '#0D1411' }}>
           <Stack screenOptions={{ headerShown: false, animation: 'none' }}>
             <Stack.Screen name="onboarding" />
+            <Stack.Screen name="wallet-setup" />
             <Stack.Screen name="(tabs)" />
           </Stack>
           <StatusBar style="light" />

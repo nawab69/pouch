@@ -56,7 +56,7 @@ export default function OnboardingScreen() {
 
   const handleComplete = useCallback(async () => {
     await completeOnboarding();
-    router.replace('/(tabs)');
+    router.replace('/wallet-setup');
   }, [completeOnboarding, router]);
 
   const handleSkip = useCallback(() => {

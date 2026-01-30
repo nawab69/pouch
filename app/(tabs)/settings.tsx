@@ -2,15 +2,36 @@ import { View, Text, Pressable, Alert } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import Feather from '@expo/vector-icons/Feather';
 import { useOnboarding } from '@/hooks/use-onboarding';
+import { useWallet } from '@/hooks/use-wallet';
 
 export default function SettingsScreen() {
   const { resetOnboarding } = useOnboarding();
+  const { resetWallet } = useWallet();
 
   const handleResetOnboarding = async () => {
     await resetOnboarding();
     Alert.alert(
       'Onboarding Reset',
       'Restart the app to see the onboarding flow again.',
+      [{ text: 'OK' }]
+    );
+  };
+
+  const handleResetWallet = async () => {
+    await resetWallet();
+    Alert.alert(
+      'Wallet Reset',
+      'Restart the app to see the wallet setup flow again.',
+      [{ text: 'OK' }]
+    );
+  };
+
+  const handleResetAll = async () => {
+    await resetOnboarding();
+    await resetWallet();
+    Alert.alert(
+      'Full Reset',
+      'Restart the app to see the complete flow from the beginning.',
       [{ text: 'OK' }]
     );
   };
@@ -26,14 +47,28 @@ export default function SettingsScreen() {
           Configure your wallet preferences and security settings.
         </Text>
 
-        {/* Dev: Reset Onboarding Button */}
+        {/* Dev: Reset Buttons */}
         {__DEV__ && (
-          <Pressable
-            onPress={handleResetOnboarding}
-            className="mt-8 px-6 py-3 bg-wallet-card rounded-full active:opacity-70"
-          >
-            <Text className="text-wallet-accent font-medium">Reset Onboarding (Dev)</Text>
-          </Pressable>
+          <View className="mt-8 gap-3">
+            <Pressable
+              onPress={handleResetOnboarding}
+              className="px-6 py-3 bg-wallet-card rounded-full active:opacity-70"
+            >
+              <Text className="text-wallet-accent font-medium text-center">Reset Onboarding (Dev)</Text>
+            </Pressable>
+            <Pressable
+              onPress={handleResetWallet}
+              className="px-6 py-3 bg-wallet-card rounded-full active:opacity-70"
+            >
+              <Text className="text-wallet-accent font-medium text-center">Reset Wallet (Dev)</Text>
+            </Pressable>
+            <Pressable
+              onPress={handleResetAll}
+              className="px-6 py-3 bg-wallet-negative/20 rounded-full active:opacity-70"
+            >
+              <Text className="text-wallet-negative font-medium text-center">Reset All (Dev)</Text>
+            </Pressable>
+          </View>
         )}
       </View>
     </SafeAreaView>
