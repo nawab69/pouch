@@ -45,7 +45,7 @@ export default function SendSuccessScreen() {
   };
 
   return (
-    <SafeAreaView className="flex-1 bg-wallet-bg" edges={['top']}>
+    <SafeAreaView className="flex-1" edges={['bottom']}>
       <View className="flex-1 items-center justify-center px-5">
         {/* Success Icon */}
         <View className="w-24 h-24 rounded-full bg-wallet-accent/20 items-center justify-center mb-6">

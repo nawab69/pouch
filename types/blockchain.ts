@@ -29,6 +29,10 @@ export interface Token {
   balanceUsd: number | null;
   isNative: boolean;
   logoUrl?: string;
+  // CoinGecko data (optional)
+  coinGeckoId?: string;
+  priceUsd?: number;
+  change24h?: number;
 }
 
 // Transaction types

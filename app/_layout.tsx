@@ -82,10 +82,38 @@ export default function RootLayout() {
         <WalletProvider>
           <NetworkProvider>
             <View style={{ flex: 1, backgroundColor: '#0D1411' }}>
-              <Stack screenOptions={{ headerShown: false, animation: 'none' }}>
-                <Stack.Screen name="onboarding" />
-                <Stack.Screen name="wallet-setup" />
-                <Stack.Screen name="(tabs)" />
+              <Stack screenOptions={{ headerShown: false, animation: 'slide_from_right' }}>
+                <Stack.Screen name="onboarding" options={{ animation: 'fade' }} />
+                <Stack.Screen name="wallet-setup" options={{ animation: 'fade' }} />
+                <Stack.Screen name="(tabs)" options={{ animation: 'fade' }} />
+                <Stack.Screen
+                  name="asset/[id]"
+                  options={{
+                    animation: 'slide_from_right',
+                    gestureEnabled: true,
+                    gestureDirection: 'horizontal',
+                  }}
+                />
+                <Stack.Screen
+                  name="send"
+                  options={{
+                    animation: 'slide_from_bottom',
+                    presentation: 'transparentModal',
+                    gestureEnabled: true,
+                    gestureDirection: 'vertical',
+                    contentStyle: { backgroundColor: 'transparent' },
+                  }}
+                />
+                <Stack.Screen
+                  name="receive"
+                  options={{
+                    animation: 'slide_from_bottom',
+                    presentation: 'transparentModal',
+                    gestureEnabled: true,
+                    gestureDirection: 'vertical',
+                    contentStyle: { backgroundColor: 'transparent' },
+                  }}
+                />
               </Stack>
               <StatusBar style="light" />
 

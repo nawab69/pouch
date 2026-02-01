@@ -127,7 +127,7 @@ export default function SendConfirmScreen() {
   };
 
   return (
-    <SafeAreaView className="flex-1 bg-wallet-bg" edges={['top']}>
+    <SafeAreaView className="flex-1" edges={['bottom']}>
       {/* Header */}
       <View className="flex-row items-center justify-between px-5 py-4">
         <Pressable

@@ -2,6 +2,14 @@ import { useState } from 'react';
 import { View, Text, Pressable, Share } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { useRouter } from 'expo-router';
+import { BlurView } from 'expo-blur';
+import { Gesture, GestureDetector } from 'react-native-gesture-handler';
+import Animated, {
+  useSharedValue,
+  useAnimatedStyle,
+  withSpring,
+  runOnJS,
+} from 'react-native-reanimated';
 import * as Clipboard from 'expo-clipboard';
 import * as Haptics from 'expo-haptics';
 import Feather from '@expo/vector-icons/Feather';
@@ -15,6 +23,30 @@ export default function ReceiveScreen() {
   const { walletAddress } = useWallet();
   const { selectedNetwork, networkType } = useNetwork();
   const [copied, setCopied] = useState(false);
+
+  const translateY = useSharedValue(0);
+
+  const dismissModal = () => {
+    router.back();
+  };
+
+  const panGesture = Gesture.Pan()
+    .onUpdate((event) => {
+      if (event.translationY > 0) {
+        translateY.value = event.translationY;
+      }
+    })
+    .onEnd((event) => {
+      if (event.translationY > 100) {
+        runOnJS(dismissModal)();
+      } else {
+        translateY.value = withSpring(0, { damping: 20, stiffness: 300 });
+      }
+    });
+
+  const animatedStyle = useAnimatedStyle(() => ({
+    transform: [{ translateY: translateY.value }],
+  }));
 
   const handleCopy = async () => {
     if (!walletAddress) return;
@@ -40,14 +72,39 @@ export default function ReceiveScreen() {
 
   if (!walletAddress) {
     return (
-      <SafeAreaView className="flex-1 bg-wallet-bg items-center justify-center">
-        <Text className="text-wallet-text-secondary">No wallet found</Text>
-      </SafeAreaView>
+      <View className="flex-1">
+        <Pressable onPress={dismissModal} className="absolute inset-0">
+          <BlurView intensity={40} tint="dark" className="flex-1" />
+        </Pressable>
+        <View
+          className="flex-1 mt-20 rounded-t-[32px] overflow-hidden items-center justify-center border-t border-x border-white/10"
+          style={{ backgroundColor: 'rgba(13, 20, 17, 0.92)' }}
+        >
+          <Text className="text-wallet-text-secondary">No wallet found</Text>
+        </View>
+      </View>
     );
   }
 
   return (
-    <SafeAreaView className="flex-1 bg-wallet-bg" edges={['top']}>
+    <View className="flex-1">
+      {/* Blur background - tap to dismiss */}
+      <Pressable onPress={dismissModal} className="absolute inset-0">
+        <BlurView intensity={40} tint="dark" className="flex-1" />
+      </Pressable>
+
+      {/* Glass modal container */}
+      <GestureDetector gesture={panGesture}>
+        <Animated.View
+          className="flex-1 mt-20 rounded-t-[32px] overflow-hidden border-t border-x border-white/10"
+          style={[{ backgroundColor: 'rgba(13, 20, 17, 0.92)' }, animatedStyle]}
+        >
+          {/* Top handle bar */}
+          <View className="items-center pt-3 pb-2">
+            <View className="w-12 h-1.5 rounded-full bg-white/30" />
+          </View>
+
+          <SafeAreaView className="flex-1" edges={['bottom']}>
       {/* Header */}
       <View className="flex-row items-center justify-between px-5 py-4">
         <Pressable
@@ -127,6 +184,9 @@ export default function ReceiveScreen() {
           </Pressable>
         </View>
       </View>
-    </SafeAreaView>
+        </SafeAreaView>
+        </Animated.View>
+      </GestureDetector>
+    </View>
   );
 }

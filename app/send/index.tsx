@@ -1,6 +1,7 @@
 import { View, Text, Pressable, ScrollView, ActivityIndicator } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
-import { useRouter } from 'expo-router';
+import { useRouter, useLocalSearchParams } from 'expo-router';
+import { useEffect, useRef } from 'react';
 import Feather from '@expo/vector-icons/Feather';
 import { Image } from 'expo-image';
 import { NetworkBadge } from '@/components/network-badge';
@@ -11,13 +12,40 @@ import { Token } from '@/types/blockchain';
 
 export default function SendTokenSelectScreen() {
   const router = useRouter();
+  const { tokenAddress } = useLocalSearchParams<{ tokenAddress?: string }>();
   const { walletAddress } = useWallet();
   const { selectedNetworkId, selectedNetwork, networkType } = useNetwork();
-  const { tokens, isLoading, error, refreshTokens } = useTokens({
+  const { tokens, isLoading, error, refreshTokens, getToken } = useTokens({
     address: walletAddress,
     networkId: selectedNetworkId,
     networkType,
   });
+
+  const hasRedirected = useRef(false);
+
+  // If tokenAddress is provided, skip token selection and go directly to amount
+  useEffect(() => {
+    if (tokenAddress && !isLoading && tokens.length > 0 && !hasRedirected.current) {
+      const contractAddr = tokenAddress === 'native' ? null : tokenAddress;
+      const token = getToken(contractAddr);
+
+      if (token) {
+        hasRedirected.current = true;
+        router.replace({
+          pathname: '/send/amount',
+          params: {
+            tokenAddress: token.contractAddress ?? 'native',
+            tokenSymbol: token.symbol,
+            tokenName: token.name,
+            tokenDecimals: token.decimals.toString(),
+            tokenBalance: token.balance,
+            tokenBalanceFormatted: token.balanceFormatted,
+            isNative: token.isNative ? 'true' : 'false',
+          },
+        });
+      }
+    }
+  }, [tokenAddress, isLoading, tokens, getToken, router]);
 
   const handleSelectToken = (token: Token) => {
     // Navigate to amount screen with token data
@@ -35,8 +63,17 @@ export default function SendTokenSelectScreen() {
     });
   };
 
+  // Show loading while redirecting
+  if (tokenAddress && (isLoading || !hasRedirected.current)) {
+    return (
+      <SafeAreaView className="flex-1 items-center justify-center" edges={['bottom']}>
+        <ActivityIndicator size="large" color="#B8F25B" />
+      </SafeAreaView>
+    );
+  }
+
   return (
-    <SafeAreaView className="flex-1 bg-wallet-bg" edges={['top']}>
+    <SafeAreaView className="flex-1" edges={['bottom']}>
       {/* Header */}
       <View className="flex-row items-center justify-between px-5 py-4">
         <Pressable

@@ -143,7 +143,7 @@ export default function SendAmountScreen() {
   const canContinue = amount !== '' && recipient !== '';
 
   return (
-    <SafeAreaView className="flex-1 bg-wallet-bg" edges={['top']}>
+    <SafeAreaView className="flex-1" edges={['bottom']}>
       <KeyboardAvoidingView
         behavior={Platform.OS === 'ios' ? 'padding' : 'height'}
         className="flex-1"

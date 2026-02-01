@@ -1,7 +1,10 @@
+// This MUST be imported before any crypto libraries (ethers, @scure/bip39, etc.)
+import 'react-native-get-random-values';
+
+// Additional expo-crypto polyfill as fallback
 import * as ExpoCrypto from 'expo-crypto';
 
-// Polyfill crypto.getRandomValues for React Native
-// Required by @scure/bip39 for secure mnemonic generation
+// Ensure crypto.getRandomValues exists
 if (typeof global.crypto === 'undefined') {
   (global as any).crypto = {};
 }

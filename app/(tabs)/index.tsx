@@ -37,6 +37,12 @@ export default function HomeScreen() {
   const [refreshing, setRefreshing] = useState(false);
   const [showAccountSwitcher, setShowAccountSwitcher] = useState(false);
 
+  const onRefresh = useCallback(async () => {
+    setRefreshing(true);
+    await refreshTokens();
+    setRefreshing(false);
+  }, [refreshTokens]);
+
   // Show loading state while contexts initialize
   if (isWalletLoading || isNetworkLoading) {
     return (
@@ -45,12 +51,6 @@ export default function HomeScreen() {
       </SafeAreaView>
     );
   }
-
-  const onRefresh = useCallback(async () => {
-    setRefreshing(true);
-    await refreshTokens();
-    setRefreshing(false);
-  }, [refreshTokens]);
 
   // Calculate total balance (for now just show native token balance)
   const displayBalance = nativeToken
@@ -169,7 +169,10 @@ export default function HomeScreen() {
                   percentageChange={0}
                   color={getTokenColor(token.symbol)}
                   logoUrl={token.logoUrl}
-                  onPress={() => {}}
+                  onPress={() => {
+                    const tokenId = token.contractAddress ?? 'native';
+                    router.push(`/asset/${tokenId}:${selectedNetworkId}`);
+                  }}
                   showDivider={index < tokens.length - 1}
                 />
               ))

@@ -11,7 +11,6 @@ import Animated, {
   useSharedValue,
   withSpring,
 } from 'react-native-reanimated';
-import { useSafeAreaInsets } from 'react-native-safe-area-context';
 
 const TAB_ICONS: Record<string, keyof typeof Feather.glyphMap> = {
   index: 'home',
@@ -21,8 +20,7 @@ const TAB_ICONS: Record<string, keyof typeof Feather.glyphMap> = {
 };
 
 export function CustomTabBar({ state, navigation }: BottomTabBarProps) {
-  const insets = useSafeAreaInsets();
-  const bottomOffset = Math.max(insets.bottom, 16);
+  const bottomOffset = 6;
   const [containerWidth, setContainerWidth] = useState(0);
   const [isReady, setIsReady] = useState(false);
 

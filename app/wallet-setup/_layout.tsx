@@ -6,6 +6,8 @@ export default function WalletSetupLayout() {
       screenOptions={{
         headerShown: false,
         animation: 'slide_from_right',
+        gestureEnabled: true,
+        gestureDirection: 'horizontal',
         contentStyle: { backgroundColor: '#0D1411' },
       }}
     >
