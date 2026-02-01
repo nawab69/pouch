@@ -65,3 +65,55 @@ import { View, Text, ScrollView } from 'react-native';
 ```
 
 Tailwind config is in `tailwind.config.js`. Global styles in `global.css`.
+
+## Related Services
+
+### CoinGecko Cache Server
+
+A Redis-backed cache proxy for CoinGecko API located at `../coingecko-cache-server/`.
+
+**Purpose:** Handle CoinGecko's rate limit (5 calls/min) by caching responses with smart TTLs.
+
+**Stack:** Express.js, Redis, Axios
+
+**Commands:**
+```bash
+cd ../coingecko-cache-server
+npm run dev        # Start with watch mode
+npm start          # Production start
+```
+
+**Requires:** Redis running locally (`redis://localhost:6379`)
+
+**Endpoints:**
+- `GET /health` - Health check with Redis and queue status
+- `GET /prices?ids=bitcoin,ethereum` - Get current prices
+- `GET /chart/:coinId?days=7` - Get chart data (1, 7, 30, 365, max)
+- `GET /coin/:coinId` - Get coin details
+- `GET /coins/list` - Get all coins with contract addresses
+- `GET /search?q=bitcoin` - Search coins
+- `GET /contract/:platform/:address` - Get token by contract
+- `POST /contract/:platform` - Batch token lookup (body: `{addresses: [...]}`)
+
+**Cache TTLs:**
+- Prices: 5 min
+- Chart 1D: 5 min
+- Chart 1W: 15 min
+- Chart 1M: 1 hour
+- Chart 1Y+: 24 hours
+
+**Rate Limiting:** Queues requests and enforces 5 calls/min to CoinGecko. Handles 429 errors with automatic retry.
+
+**Quick Start:**
+```bash
+# Terminal 1: Start Redis
+cd ../coingecko-cache-server && npm run redis:up
+
+# Terminal 2: Start cache server
+cd ../coingecko-cache-server && npm run dev
+
+# Terminal 3: Start the app
+npm start
+```
+
+**Integration:** The app uses `services/coingecko/cache-client.ts` to connect to the cache server at `http://localhost:3001`. The `useTokens` hook fetches all prices in a single API call after tokens are loaded.

@@ -1,7 +1,7 @@
 import { View, Text, ScrollView, Pressable, StyleSheet, Dimensions, RefreshControl } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { useRouter } from 'expo-router';
-import { useState, useCallback } from 'react';
+import { useState, useCallback, useMemo } from 'react';
 import Svg, { Defs, RadialGradient, Stop, Rect } from 'react-native-svg';
 import { Header } from '@/components/header';
 import { BalanceDisplay } from '@/components/balance-display';
@@ -28,7 +28,7 @@ export default function HomeScreen() {
     isLoading: isWalletLoading,
   } = useWallet();
   const { selectedNetworkId, selectedNetwork, networkType, isLoading: isNetworkLoading } = useNetwork();
-  const { tokens, nativeToken, isLoading, refreshTokens } = useTokens({
+  const { tokens, nativeToken, totalBalanceUsd, isLoading, refreshTokens } = useTokens({
     address: walletAddress,
     networkId: selectedNetworkId,
     networkType,
@@ -52,10 +52,27 @@ export default function HomeScreen() {
     );
   }
 
-  // Calculate total balance (for now just show native token balance)
-  const displayBalance = nativeToken
-    ? parseFloat(nativeToken.balanceFormatted)
-    : 0;
+  // Display total USD balance or native token balance
+  const displayBalance = totalBalanceUsd > 0
+    ? totalBalanceUsd
+    : nativeToken
+      ? parseFloat(nativeToken.balanceFormatted)
+      : 0;
+
+  // Calculate overall 24h change (weighted average based on USD value)
+  const overall24hChange = useMemo(() => {
+    if (totalBalanceUsd === 0) return 0;
+
+    let weightedChange = 0;
+    tokens.forEach((token) => {
+      if (token.balanceUsd && token.change24h !== undefined) {
+        const weight = token.balanceUsd / totalBalanceUsd;
+        weightedChange += token.change24h * weight;
+      }
+    });
+
+    return weightedChange;
+  }, [tokens, totalBalanceUsd]);
 
   // Format wallet address for display
   const displayAddress = walletAddress
@@ -127,8 +144,9 @@ export default function HomeScreen() {
 
         <BalanceDisplay
           balance={displayBalance}
-          percentageChange={0}
+          percentageChange={overall24hChange}
           timeframe="1d"
+          isUsd={totalBalanceUsd > 0}
         />
 
         <View className="flex-row justify-center gap-12 py-6">
@@ -165,8 +183,8 @@ export default function HomeScreen() {
                   name={token.name}
                   symbol={token.symbol}
                   amount={token.balanceFormatted}
-                  price={token.balanceUsd ? `$${token.balanceUsd.toFixed(2)}` : '-'}
-                  percentageChange={0}
+                  price={token.priceUsd ? `$${token.priceUsd.toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: token.priceUsd >= 1 ? 2 : 4 })}` : '-'}
+                  percentageChange={token.change24h ?? 0}
                   color={getTokenColor(token.symbol)}
                   logoUrl={token.logoUrl}
                   onPress={() => {
