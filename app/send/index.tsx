@@ -1,13 +1,14 @@
-import { View, Text, Pressable, ScrollView, ActivityIndicator } from 'react-native';
+import { useState, useEffect, useRef } from 'react';
+import { ActivityIndicator, Pressable, ScrollView, Text, View } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
-import { useRouter, useLocalSearchParams } from 'expo-router';
-import { useEffect, useRef } from 'react';
-import Feather from '@expo/vector-icons/Feather';
+import { useLocalSearchParams, useRouter } from 'expo-router';
 import { Image } from 'expo-image';
+import Feather from '@expo/vector-icons/Feather';
 import { NetworkBadge } from '@/components/network-badge';
-import { useWallet } from '@/hooks/use-wallet';
 import { useNetwork } from '@/hooks/use-network';
 import { useTokens } from '@/hooks/use-tokens';
+import { useWallet } from '@/hooks/use-wallet';
+import { getTokenBalance } from '@/services/blockchain';
 import { Token } from '@/types/blockchain';
 
 export default function SendTokenSelectScreen() {
@@ -15,37 +16,57 @@ export default function SendTokenSelectScreen() {
   const { tokenAddress } = useLocalSearchParams<{ tokenAddress?: string }>();
   const { walletAddress } = useWallet();
   const { selectedNetworkId, selectedNetwork, networkType } = useNetwork();
-  const { tokens, isLoading, error, refreshTokens, getToken } = useTokens({
+
+  // Only load all tokens if no specific token is requested
+  const { tokens, isLoading, error, refreshTokens } = useTokens({
     address: walletAddress,
     networkId: selectedNetworkId,
     networkType,
+    autoFetch: !tokenAddress, // Don't auto-fetch all tokens if we have a specific one
   });
 
   const hasRedirected = useRef(false);
+  const [isFetchingSingle, setIsFetchingSingle] = useState(false);
 
-  // If tokenAddress is provided, skip token selection and go directly to amount
+  // If tokenAddress is provided, fetch only that token's balance and redirect
   useEffect(() => {
-    if (tokenAddress && !isLoading && tokens.length > 0 && !hasRedirected.current) {
-      const contractAddr = tokenAddress === 'native' ? null : tokenAddress;
-      const token = getToken(contractAddr);
+    if (!tokenAddress || !walletAddress || hasRedirected.current) return;
 
-      if (token) {
-        hasRedirected.current = true;
-        router.replace({
-          pathname: '/send/amount',
-          params: {
-            tokenAddress: token.contractAddress ?? 'native',
-            tokenSymbol: token.symbol,
-            tokenName: token.name,
-            tokenDecimals: token.decimals.toString(),
-            tokenBalance: token.balance,
-            tokenBalanceFormatted: token.balanceFormatted,
-            isNative: token.isNative ? 'true' : 'false',
-          },
-        });
+    const fetchSingleToken = async () => {
+      setIsFetchingSingle(true);
+      try {
+        const contractAddr = tokenAddress === 'native' ? null : tokenAddress;
+        const token = await getTokenBalance(
+          walletAddress,
+          contractAddr,
+          selectedNetworkId,
+          networkType
+        );
+
+        if (token) {
+          hasRedirected.current = true;
+          router.replace({
+            pathname: '/send/amount',
+            params: {
+              tokenAddress: token.contractAddress ?? 'native',
+              tokenSymbol: token.symbol,
+              tokenName: token.name,
+              tokenDecimals: token.decimals.toString(),
+              tokenBalance: token.balance,
+              tokenBalanceFormatted: token.balanceFormatted,
+              isNative: token.isNative ? 'true' : 'false',
+            },
+          });
+        }
+      } catch (err) {
+        console.error('Error fetching token:', err);
+      } finally {
+        setIsFetchingSingle(false);
       }
-    }
-  }, [tokenAddress, isLoading, tokens, getToken, router]);
+    };
+
+    fetchSingleToken();
+  }, [tokenAddress, walletAddress, selectedNetworkId, networkType, router]);
 
   const handleSelectToken = (token: Token) => {
     // Navigate to amount screen with token data
@@ -63,8 +84,8 @@ export default function SendTokenSelectScreen() {
     });
   };
 
-  // Show loading while redirecting
-  if (tokenAddress && (isLoading || !hasRedirected.current)) {
+  // Show loading while fetching single token and redirecting
+  if (tokenAddress && (isFetchingSingle || !hasRedirected.current)) {
     return (
       <SafeAreaView className="flex-1 items-center justify-center" edges={['bottom']}>
         <ActivityIndicator size="large" color="#B8F25B" />

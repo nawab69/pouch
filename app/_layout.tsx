@@ -13,6 +13,8 @@ import { PlayfairDisplay_700Bold_Italic } from '@expo-google-fonts/playfair-disp
 import { SplashScreen } from '@/components/splash-screen';
 import { NetworkProvider } from '@/contexts/network-context';
 import { WalletProvider } from '@/contexts/wallet-context';
+import { AuthProvider } from '@/contexts/auth-context';
+import { LockScreen } from '@/components/lock-screen/lock-screen';
 
 const ONBOARDING_KEY = '@pouch/onboarding_complete';
 const WALLET_KEY = '@pouch/has_wallet';
@@ -81,47 +83,66 @@ export default function RootLayout() {
       <ThemeProvider value={DarkTheme}>
         <WalletProvider>
           <NetworkProvider>
-            <View style={{ flex: 1, backgroundColor: '#0D1411' }}>
-              <Stack screenOptions={{ headerShown: false, animation: 'slide_from_right' }}>
-                <Stack.Screen name="onboarding" options={{ animation: 'fade' }} />
-                <Stack.Screen name="wallet-setup" options={{ animation: 'fade' }} />
-                <Stack.Screen name="(tabs)" options={{ animation: 'fade' }} />
-                <Stack.Screen
-                  name="asset/[id]"
-                  options={{
-                    animation: 'slide_from_right',
-                    gestureEnabled: true,
-                    gestureDirection: 'horizontal',
-                  }}
-                />
-                <Stack.Screen
-                  name="send"
-                  options={{
-                    animation: 'slide_from_bottom',
-                    presentation: 'transparentModal',
-                    gestureEnabled: true,
-                    gestureDirection: 'vertical',
-                    contentStyle: { backgroundColor: 'transparent' },
-                  }}
-                />
-                <Stack.Screen
-                  name="receive"
-                  options={{
-                    animation: 'slide_from_bottom',
-                    presentation: 'transparentModal',
-                    gestureEnabled: true,
-                    gestureDirection: 'vertical',
-                    contentStyle: { backgroundColor: 'transparent' },
-                  }}
-                />
-              </Stack>
-              <StatusBar style="light" />
+            <AuthProvider>
+              <View style={{ flex: 1, backgroundColor: '#0D1411' }}>
+                <Stack screenOptions={{ headerShown: false, animation: 'slide_from_right' }}>
+                  <Stack.Screen name="onboarding" options={{ animation: 'fade' }} />
+                  <Stack.Screen name="wallet-setup" options={{ animation: 'fade' }} />
+                  <Stack.Screen name="(tabs)" options={{ animation: 'fade' }} />
+                  <Stack.Screen
+                    name="asset/[id]"
+                    options={{
+                      animation: 'slide_from_right',
+                      gestureEnabled: true,
+                      gestureDirection: 'horizontal',
+                    }}
+                  />
+                  <Stack.Screen
+                    name="send"
+                    options={{
+                      animation: 'slide_from_bottom',
+                      presentation: 'transparentModal',
+                      gestureEnabled: true,
+                      gestureDirection: 'vertical',
+                      contentStyle: { backgroundColor: 'transparent' },
+                    }}
+                  />
+                  <Stack.Screen
+                    name="receive"
+                    options={{
+                      animation: 'slide_from_bottom',
+                      presentation: 'transparentModal',
+                      gestureEnabled: true,
+                      gestureDirection: 'vertical',
+                      contentStyle: { backgroundColor: 'transparent' },
+                    }}
+                  />
+                  <Stack.Screen
+                    name="assistant"
+                    options={{
+                      animation: 'fade',
+                      gestureEnabled: true,
+                    }}
+                  />
+                  <Stack.Screen
+                    name="app-lock"
+                    options={{
+                      animation: 'slide_from_right',
+                      gestureEnabled: true,
+                    }}
+                  />
+                </Stack>
+                <StatusBar style="light" />
 
-              {/* Animated splash screen overlay */}
-              {!splashComplete && (
-                <SplashScreen onAnimationComplete={handleSplashComplete} />
-              )}
-            </View>
+                {/* Lock screen overlay */}
+                <LockScreen />
+
+                {/* Animated splash screen overlay */}
+                {!splashComplete && (
+                  <SplashScreen onAnimationComplete={handleSplashComplete} />
+                )}
+              </View>
+            </AuthProvider>
           </NetworkProvider>
         </WalletProvider>
       </ThemeProvider>

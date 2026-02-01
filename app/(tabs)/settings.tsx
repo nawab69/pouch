@@ -1,14 +1,20 @@
+import { useState } from 'react';
 import { View, Text, Pressable, Alert, Switch, ScrollView } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
+import { useRouter } from 'expo-router';
 import Feather from '@expo/vector-icons/Feather';
 import { useOnboarding } from '@/hooks/use-onboarding';
 import { useWallet } from '@/hooks/use-wallet';
 import { useNetwork } from '@/hooks/use-network';
+import { useAuth } from '@/hooks/use-auth';
 import { NetworkSelector } from '@/components/network-selector';
+import { RecoveryPhraseViewer } from '@/components/settings/recovery-phrase-viewer';
 
 export default function SettingsScreen() {
+  const router = useRouter();
   const { resetOnboarding } = useOnboarding();
   const { resetWallet } = useWallet();
+  const { lockSettings } = useAuth();
   const {
     selectedNetworkId,
     selectedNetwork,
@@ -18,6 +24,8 @@ export default function SettingsScreen() {
     changeNetwork,
     toggleNetworkType,
   } = useNetwork();
+
+  const [showRecoveryPhrase, setShowRecoveryPhrase] = useState(false);
 
   // Show loading state while context initializes
   if (isLoading) {
@@ -129,14 +137,14 @@ export default function SettingsScreen() {
             icon="shield"
             label="Recovery Phrase"
             description="View your secret recovery phrase"
-            onPress={() => Alert.alert('Coming Soon', 'This feature is coming soon')}
+            onPress={() => setShowRecoveryPhrase(true)}
           />
 
           <SettingsItem
             icon="lock"
             label="App Lock"
-            description="Require authentication to open"
-            onPress={() => Alert.alert('Coming Soon', 'This feature is coming soon')}
+            description={lockSettings.isEnabled ? 'Enabled' : 'Disabled'}
+            onPress={() => router.push('/app-lock')}
           />
         </View>
 
@@ -174,6 +182,16 @@ export default function SettingsScreen() {
 
             <View className="gap-3">
               <Pressable
+                onPress={() => router.push('/assistant')}
+                className="flex-row items-center gap-3 px-4 py-3 bg-blue-900/30 rounded-xl active:opacity-70"
+              >
+                <Feather name="cpu" size={18} color="#66BBFF" />
+                <Text className="text-blue-400 font-medium">
+                  AI Assistant (Test)
+                </Text>
+              </Pressable>
+
+              <Pressable
                 onPress={handleResetOnboarding}
                 className="flex-row items-center gap-3 px-4 py-3 bg-wallet-card rounded-xl active:opacity-70"
               >
@@ -209,6 +227,12 @@ export default function SettingsScreen() {
         {/* Bottom Padding for Tab Bar */}
         <View className="h-32" />
       </ScrollView>
+
+      {/* Recovery Phrase Viewer Modal */}
+      <RecoveryPhraseViewer
+        visible={showRecoveryPhrase}
+        onClose={() => setShowRecoveryPhrase(false)}
+      />
     </SafeAreaView>
   );
 }
