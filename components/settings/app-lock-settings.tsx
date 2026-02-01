@@ -1,10 +1,12 @@
-import { useState } from 'react';
+import { useState, useCallback } from 'react';
 import { View, Text, Pressable, Switch, ScrollView, Alert } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { useRouter } from 'expo-router';
 import Feather from '@expo/vector-icons/Feather';
 import { useAuth } from '@/hooks/use-auth';
+import { useWallet } from '@/contexts/wallet-context';
 import { PinSetupModal } from './pin-setup-modal';
+import { PinChangeModal } from './pin-change-modal';
 import { getBiometricTypeName } from '@/services/auth/biometric-service';
 import type { AutoLockTimeout } from '@/types/auth';
 
@@ -23,23 +25,38 @@ export function AppLockSettings() {
     biometricType,
     hasBiometricHardware,
     setupPin,
-    removePin,
+    changePin,
+    disableLock,
     updateLockSettings,
   } = useAuth();
 
+  const { reEncryptAllWalletData } = useWallet();
+
   const [showPinSetup, setShowPinSetup] = useState(false);
-  const [isChangingPin, setIsChangingPin] = useState(false);
+  const [showPinChange, setShowPinChange] = useState(false);
   const [showTimeoutPicker, setShowTimeoutPicker] = useState(false);
 
   const handleSetupPin = async (pin: string) => {
     try {
       await setupPin(pin);
       setShowPinSetup(false);
-      setIsChangingPin(false);
     } catch {
       Alert.alert('Error', 'Failed to set up PIN. Please try again.');
     }
   };
+
+  const handleChangePin = useCallback(async (currentPin: string, newPin: string): Promise<boolean> => {
+    try {
+      const success = await changePin(currentPin, newPin, reEncryptAllWalletData);
+      if (success) {
+        Alert.alert('Success', 'Your PIN has been changed successfully.');
+      }
+      return success;
+    } catch {
+      Alert.alert('Error', 'Failed to change PIN. Please try again.');
+      return false;
+    }
+  }, [changePin, reEncryptAllWalletData]);
 
   const handleToggleAppLock = async (enabled: boolean) => {
     if (enabled && !lockSettings.hasPin) {
@@ -47,16 +64,17 @@ export function AppLockSettings() {
       setShowPinSetup(true);
     } else if (!enabled) {
       // Confirm before disabling
+      // Note: This only disables the lock screen, PIN is still required for sensitive operations
       Alert.alert(
         'Disable App Lock',
-        'Are you sure you want to disable app lock? Your wallet will no longer be protected by PIN or biometrics.',
+        'The lock screen will be disabled. Your PIN will still be required for sensitive operations like viewing your recovery phrase or sending transactions.',
         [
           { text: 'Cancel', style: 'cancel' },
           {
             text: 'Disable',
             style: 'destructive',
             onPress: async () => {
-              await removePin();
+              await disableLock();
             },
           },
         ]
@@ -74,9 +92,8 @@ export function AppLockSettings() {
     await updateLockSettings({ lockOnBackground: enabled });
   };
 
-  const handleChangePin = () => {
-    setIsChangingPin(true);
-    setShowPinSetup(true);
+  const handleOpenPinChange = () => {
+    setShowPinChange(true);
   };
 
   const handleSelectTimeout = async (timeout: AutoLockTimeout) => {
@@ -148,7 +165,7 @@ export function AppLockSettings() {
 
             {/* Change PIN */}
             <Pressable
-              onPress={handleChangePin}
+              onPress={handleOpenPinChange}
               className="bg-wallet-card rounded-xl p-4 mt-4 flex-row items-center justify-between active:opacity-70"
             >
               <View>
@@ -235,15 +252,18 @@ export function AppLockSettings() {
         <View className="h-20" />
       </ScrollView>
 
-      {/* PIN Setup Modal */}
+      {/* PIN Setup Modal (for initial setup only) */}
       <PinSetupModal
         visible={showPinSetup}
-        onClose={() => {
-          setShowPinSetup(false);
-          setIsChangingPin(false);
-        }}
+        onClose={() => setShowPinSetup(false)}
         onComplete={handleSetupPin}
-        isChanging={isChangingPin}
+      />
+
+      {/* PIN Change Modal (for changing existing PIN) */}
+      <PinChangeModal
+        visible={showPinChange}
+        onClose={() => setShowPinChange(false)}
+        onComplete={handleChangePin}
       />
     </SafeAreaView>
   );

@@ -250,6 +250,50 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     setLockSettings(newSettings);
   }, [lockSettings]);
 
+  /**
+   * Change PIN and re-encrypt all wallet data
+   * This ensures the mnemonic and private keys are encrypted with the new PIN
+   */
+  const changePinHandler = useCallback(
+    async (
+      oldPin: string,
+      newPin: string,
+      reEncryptWalletData: (oldPin: string, newPin: string) => Promise<boolean>
+    ): Promise<boolean> => {
+      try {
+        // Step 1: Re-encrypt all wallet data with new PIN
+        // This also verifies the old PIN is correct (decryption will fail if wrong)
+        const reEncryptSuccess = await reEncryptWalletData(oldPin, newPin);
+        if (!reEncryptSuccess) {
+          // Old PIN was wrong or re-encryption failed
+          return false;
+        }
+
+        // Step 2: Update PIN hash for app lock
+        await storePin(newPin);
+
+        // Step 3: Update settings to ensure PIN is marked as set
+        const newSettings: LockSettings = {
+          ...lockSettings,
+          hasPin: true,
+          isEnabled: true,
+        };
+
+        await AsyncStorage.setItem(
+          AUTH_STORAGE_KEYS.LOCK_SETTINGS,
+          JSON.stringify(newSettings)
+        );
+        setLockSettings(newSettings);
+
+        return true;
+      } catch (error) {
+        console.error('PIN change failed:', error);
+        return false;
+      }
+    },
+    [lockSettings]
+  );
+
   const removePinHandler = useCallback(async (): Promise<void> => {
     await removeStoredPin();
 
@@ -266,6 +310,28 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     setLockSettings(newSettings);
     setIsLocked(false);
   }, []);
+
+  /**
+   * Disable app lock without removing PIN
+   * This keeps the PIN for wallet encryption but disables the lock screen
+   * PIN is still required for sensitive operations like viewing recovery phrase
+   */
+  const disableLockHandler = useCallback(async (): Promise<void> => {
+    // DON'T call removeStoredPin() - keep PIN for encryption verification
+    const newSettings: LockSettings = {
+      ...lockSettings,
+      isEnabled: false,
+      useBiometric: false,
+      lockOnBackground: false,
+    };
+
+    await AsyncStorage.setItem(
+      AUTH_STORAGE_KEYS.LOCK_SETTINGS,
+      JSON.stringify(newSettings)
+    );
+    setLockSettings(newSettings);
+    setIsLocked(false);
+  }, [lockSettings]);
 
   const updateLockSettingsHandler = useCallback(
     async (newSettings: Partial<LockSettings>): Promise<void> => {
@@ -315,7 +381,9 @@ export function AuthProvider({ children }: { children: ReactNode }) {
         authenticateWithBiometric: authenticateWithBiometricHandler,
         authenticateWithPin: authenticateWithPinHandler,
         setupPin: setupPinHandler,
+        changePin: changePinHandler,
         removePin: removePinHandler,
+        disableLock: disableLockHandler,
         updateLockSettings: updateLockSettingsHandler,
         resetFailedAttempts: resetFailedAttemptsHandler,
       }}

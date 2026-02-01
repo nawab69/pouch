@@ -9,6 +9,12 @@ import {
   encryptPrivateKey,
   decryptPrivateKey,
   deleteEncryptionSalt,
+  getEncryptionSalt,
+  setEncryptionSalt,
+  generateSalt,
+  deriveKeyFromPin,
+  encryptData,
+  decryptData,
 } from '@/services/crypto/wallet-encryption';
 
 const WALLET_KEY = '@pouch/has_wallet';
@@ -33,6 +39,7 @@ interface WalletContextType {
   addAccount: (pin: string) => Promise<Account>;
   selectAccount: (index: number) => Promise<void>;
   renameAccount: (index: number, name: string) => Promise<void>;
+  reEncryptAllWalletData: (oldPin: string, newPin: string) => Promise<boolean>;
 }
 
 const WalletContext = createContext<WalletContextType | null>(null);
@@ -215,6 +222,80 @@ export function WalletProvider({ children }: { children: ReactNode }) {
     await saveAccounts(newAccounts);
   }, [accounts]);
 
+  /**
+   * Re-encrypt all wallet data (mnemonic + all private keys) with a new PIN
+   * This is called when the user changes their PIN
+   * Returns true if successful, false if old PIN is wrong or re-encryption fails
+   */
+  const reEncryptAllWalletData = useCallback(async (oldPin: string, newPin: string): Promise<boolean> => {
+    try {
+      // Get current encryption salt before any changes
+      const oldSalt = await getEncryptionSalt();
+      if (!oldSalt) {
+        console.error('No encryption salt found');
+        return false;
+      }
+
+      // Generate new salt for the new PIN
+      const newSalt = await generateSalt();
+
+      // Step 1: Get and verify we can decrypt the mnemonic with old PIN
+      const encryptedMnemonic = await SecureStore.getItemAsync(ENCRYPTED_MNEMONIC_KEY);
+      if (!encryptedMnemonic) {
+        console.error('No encrypted mnemonic found');
+        return false;
+      }
+
+      const oldKey = await deriveKeyFromPin(oldPin, oldSalt);
+      const mnemonic = decryptData(encryptedMnemonic, oldKey);
+      if (!mnemonic) {
+        console.error('Failed to decrypt mnemonic - wrong PIN');
+        return false;
+      }
+
+      // Step 2: Re-encrypt mnemonic with new PIN and new salt
+      const newKey = await deriveKeyFromPin(newPin, newSalt);
+      const newEncryptedMnemonic = encryptData(mnemonic, newKey);
+
+      // Step 3: Re-encrypt all private keys
+      const reEncryptedKeys: { index: number; encrypted: string }[] = [];
+
+      for (const account of accounts) {
+        const encryptedPk = await SecureStore.getItemAsync(`${ENCRYPTED_PK_PREFIX}${account.index}`);
+        if (!encryptedPk) {
+          console.error(`No encrypted private key for account ${account.index}`);
+          return false;
+        }
+
+        const privateKey = decryptData(encryptedPk, oldKey);
+        if (!privateKey) {
+          console.error(`Failed to decrypt private key for account ${account.index}`);
+          return false;
+        }
+
+        const newEncryptedPk = encryptData(privateKey, newKey);
+        reEncryptedKeys.push({ index: account.index, encrypted: newEncryptedPk });
+      }
+
+      // Step 4: Commit all changes atomically
+      // First update the salt
+      await setEncryptionSalt(newSalt);
+
+      // Then store the new encrypted mnemonic
+      await SecureStore.setItemAsync(ENCRYPTED_MNEMONIC_KEY, newEncryptedMnemonic);
+
+      // Finally store all new encrypted private keys
+      for (const { index, encrypted } of reEncryptedKeys) {
+        await SecureStore.setItemAsync(`${ENCRYPTED_PK_PREFIX}${index}`, encrypted);
+      }
+
+      return true;
+    } catch (error) {
+      console.error('Re-encryption failed:', error);
+      return false;
+    }
+  }, [accounts]);
+
   return (
     <WalletContext.Provider
       value={{
@@ -231,6 +312,7 @@ export function WalletProvider({ children }: { children: ReactNode }) {
         addAccount,
         selectAccount,
         renameAccount,
+        reEncryptAllWalletData,
       }}
     >
       {children}
