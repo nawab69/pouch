@@ -58,7 +58,7 @@ export default function RootLayout() {
   }, []);
 
   // Navigate once router is ready
-  // Flow: Onboarding → Wallet Setup → Home
+  // Flow: Onboarding → PIN Setup → Wallet Setup → Home
   useEffect(() => {
     if (hasSeenOnboarding === null || hasWallet === null || hasNavigated) return;
     if (!rootNavigationState?.key) return;

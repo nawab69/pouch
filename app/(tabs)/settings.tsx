@@ -14,7 +14,7 @@ export default function SettingsScreen() {
   const router = useRouter();
   const { resetOnboarding } = useOnboarding();
   const { resetWallet } = useWallet();
-  const { lockSettings } = useAuth();
+  const { lockSettings, removePin } = useAuth();
   const {
     selectedNetworkId,
     selectedNetwork,
@@ -55,12 +55,26 @@ export default function SettingsScreen() {
   };
 
   const handleResetAll = async () => {
-    await resetOnboarding();
-    await resetWallet();
     Alert.alert(
-      'Full Reset',
-      'Restart the app to see the complete flow from the beginning.',
-      [{ text: 'OK' }]
+      'Reset Everything',
+      'This will delete your wallet, PIN, and all data. You will need your recovery phrase to restore access. Are you sure?',
+      [
+        { text: 'Cancel', style: 'cancel' },
+        {
+          text: 'Reset',
+          style: 'destructive',
+          onPress: async () => {
+            await removePin();
+            await resetOnboarding();
+            await resetWallet();
+            Alert.alert(
+              'Full Reset Complete',
+              'Restart the app to start fresh.',
+              [{ text: 'OK' }]
+            );
+          },
+        },
+      ]
     );
   };
 

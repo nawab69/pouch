@@ -25,6 +25,7 @@
     "@scure/bip39": "^2.0.1",
     "@shopify/react-native-skia": "2.2.12",
     "alchemy-sdk": "^3.6.5",
+    "crypto-js": "^4.2.0",
     "ethers": "^6.16.0",
     "expo": "~54.0.32",
     "expo-blur": "~15.0.8",
@@ -62,6 +63,7 @@
     "three": "^0.182.0"
   },
   "devDependencies": {
+    "@types/crypto-js": "^4.2.2",
     "@types/react": "~19.1.0",
     "eslint": "^9.25.0",
     "eslint-config-expo": "~10.0.0",

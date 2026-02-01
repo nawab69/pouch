@@ -28,9 +28,9 @@ export default function ImportWalletScreen() {
 
   const handleContinue = () => {
     if (!isValid) return;
-    router.replace({
-      pathname: '/wallet-setup/success',
-      params: { mnemonic: mnemonic.join(','), action: 'imported' },
+    router.push({
+      pathname: '/wallet-setup/import/pin',
+      params: { mnemonic: mnemonic.join(',') },
     });
   };
 
@@ -111,7 +111,7 @@ export default function ImportWalletScreen() {
           style={[styles.continueButton, continueStyle]}
           disabled={!isValid}
         >
-          <Text style={styles.continueButtonText}>Import Wallet</Text>
+          <Text style={styles.continueButtonText}>Continue</Text>
           <Feather name="arrow-right" size={20} color="#0D1411" />
         </AnimatedPressable>
       </View>

@@ -43,6 +43,22 @@ export default function HomeScreen() {
     setRefreshing(false);
   }, [refreshTokens]);
 
+  // Calculate overall 24h change (weighted average based on USD value)
+  // Must be before any conditional returns per React hooks rules
+  const overall24hChange = useMemo(() => {
+    if (totalBalanceUsd === 0) return 0;
+
+    let weightedChange = 0;
+    tokens.forEach((token) => {
+      if (token.balanceUsd && token.change24h !== undefined) {
+        const weight = token.balanceUsd / totalBalanceUsd;
+        weightedChange += token.change24h * weight;
+      }
+    });
+
+    return weightedChange;
+  }, [tokens, totalBalanceUsd]);
+
   // Show loading state while contexts initialize
   if (isWalletLoading || isNetworkLoading) {
     return (
@@ -58,21 +74,6 @@ export default function HomeScreen() {
     : nativeToken
       ? parseFloat(nativeToken.balanceFormatted)
       : 0;
-
-  // Calculate overall 24h change (weighted average based on USD value)
-  const overall24hChange = useMemo(() => {
-    if (totalBalanceUsd === 0) return 0;
-
-    let weightedChange = 0;
-    tokens.forEach((token) => {
-      if (token.balanceUsd && token.change24h !== undefined) {
-        const weight = token.balanceUsd / totalBalanceUsd;
-        weightedChange += token.change24h * weight;
-      }
-    });
-
-    return weightedChange;
-  }, [tokens, totalBalanceUsd]);
 
   // Format wallet address for display
   const displayAddress = walletAddress
@@ -203,6 +204,7 @@ export default function HomeScreen() {
       <AccountSwitcher
         visible={showAccountSwitcher}
         onClose={() => setShowAccountSwitcher(false)}
+        onOpen={() => setShowAccountSwitcher(true)}
         accounts={accounts}
         selectedAccount={selectedAccount}
         onSelectAccount={selectAccount}

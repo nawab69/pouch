@@ -1,10 +1,11 @@
-import { useState, useEffect, useCallback, useMemo } from 'react';
+import { useState, useEffect, useCallback, useMemo, useRef } from 'react';
 import { View, Text, Pressable, ActivityIndicator, Alert } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { useRouter, useLocalSearchParams } from 'expo-router';
 import { formatEther } from 'ethers';
 import Feather from '@expo/vector-icons/Feather';
 import { GasFeeSelector } from '@/components/gas-fee-selector';
+import { PinConfirmModal } from '@/components/pin-confirm-modal';
 import { useWallet } from '@/hooks/use-wallet';
 import { useNetwork } from '@/hooks/use-network';
 import { useTransactions } from '@/hooks/use-transactions';
@@ -27,11 +28,24 @@ export default function SendConfirmScreen() {
 
   const { walletAddress, getPrivateKey } = useWallet();
   const { selectedNetworkId, selectedNetwork, networkType } = useNetwork();
+
+  // Store PIN for transaction signing
+  const pendingPinRef = useRef<string>('');
+  const [showPinModal, setShowPinModal] = useState(false);
+
+  // Wrap getPrivateKey to use the pending PIN
+  const getPrivateKeyWithPin = useCallback(async () => {
+    if (!pendingPinRef.current) {
+      return null;
+    }
+    return getPrivateKey(pendingPinRef.current);
+  }, [getPrivateKey]);
+
   const { getGasEstimate, getGasOptions, send, isSending, error } = useTransactions({
     address: walletAddress,
     networkId: selectedNetworkId,
     networkType,
-    getPrivateKey,
+    getPrivateKey: getPrivateKeyWithPin,
   });
 
   const [gasEstimate, setGasEstimate] = useState<GasEstimate | null>(null);
@@ -96,11 +110,32 @@ export default function SendConfirmScreen() {
     }
   };
 
-  const handleConfirm = async () => {
+  const handleConfirmPress = () => {
     if (!gasEstimate) {
       Alert.alert('Error', 'Gas estimate not available');
       return;
     }
+
+    // Show PIN confirmation modal
+    setShowPinModal(true);
+  };
+
+  const handlePinConfirm = async (pin: string): Promise<boolean> => {
+    pendingPinRef.current = pin;
+
+    // First validate PIN by trying to get private key
+    const privateKey = await getPrivateKey(pin);
+    if (!privateKey) {
+      pendingPinRef.current = '';
+      return false; // Wrong PIN
+    }
+
+    if (!gasEstimate) {
+      pendingPinRef.current = '';
+      return false;
+    }
+
+    setShowPinModal(false);
 
     const result = await send({
       to: recipient,
@@ -108,6 +143,9 @@ export default function SendConfirmScreen() {
       token,
       gasEstimate,
     });
+
+    // Clear PIN after use
+    pendingPinRef.current = '';
 
     if (result) {
       // Navigate to success screen
@@ -121,9 +159,11 @@ export default function SendConfirmScreen() {
           recipient,
         },
       });
+      return true;
     } else if (error) {
       Alert.alert('Transaction Failed', error);
     }
+    return true; // PIN was valid even if tx failed for other reasons
   };
 
   return (
@@ -215,7 +255,7 @@ export default function SendConfirmScreen() {
       {/* Confirm Button */}
       <View className="px-5 pb-8">
         <Pressable
-          onPress={handleConfirm}
+          onPress={handleConfirmPress}
           disabled={isSending || isLoadingGas || !gasEstimate}
           className={`py-4 rounded-xl items-center flex-row justify-center gap-2 ${
             isSending || isLoadingGas || !gasEstimate
@@ -243,6 +283,15 @@ export default function SendConfirmScreen() {
           )}
         </Pressable>
       </View>
+
+      {/* PIN Confirmation Modal */}
+      <PinConfirmModal
+        visible={showPinModal}
+        title="Confirm Transaction"
+        description="Enter your PIN to sign and send this transaction"
+        onClose={() => setShowPinModal(false)}
+        onConfirm={handlePinConfirm}
+      />
     </SafeAreaView>
   );
 }

@@ -1,4 +1,4 @@
-import { useState, useEffect, useCallback } from 'react';
+import { useState, useEffect, useCallback, useRef } from 'react';
 import { View, Text, Pressable, Modal, Alert } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import Feather from '@expo/vector-icons/Feather';
@@ -7,7 +7,6 @@ import { useAuth } from '@/hooks/use-auth';
 import { useWallet } from '@/hooks/use-wallet';
 import { MnemonicGrid } from '@/components/wallet-setup/mnemonic-grid';
 import { authenticateWithBiometric } from '@/services/auth/biometric-service';
-import { verifyPin } from '@/services/auth/pin-service';
 import { PinInput } from '@/components/lock-screen/pin-input';
 import { PinKeypad } from '@/components/lock-screen/pin-keypad';
 import { PIN_LENGTH, BIOMETRIC_PROMPTS } from '@/constants/auth';
@@ -32,6 +31,9 @@ export function RecoveryPhraseViewer({ visible, onClose }: RecoveryPhraseViewerP
   const [pin, setPin] = useState('');
   const [hasError, setHasError] = useState(false);
 
+  // Store verified PIN for decryption
+  const verifiedPinRef = useRef<string>('');
+
   // Reset state when modal opens
   useEffect(() => {
     if (visible) {
@@ -41,6 +43,7 @@ export function RecoveryPhraseViewer({ visible, onClose }: RecoveryPhraseViewerP
       setAutoHideCountdown(AUTO_HIDE_SECONDS);
       setPin('');
       setHasError(false);
+      verifiedPinRef.current = '';
     }
   }, [visible]);
 
@@ -62,37 +65,33 @@ export function RecoveryPhraseViewer({ visible, onClose }: RecoveryPhraseViewerP
   }, [viewState, isBlurred]);
 
   const handleProceedToAuth = () => {
-    if (lockSettings.hasPin) {
-      setViewState('auth');
-      // Try biometric first if available
-      if (lockSettings.useBiometric && hasBiometricHardware) {
-        handleBiometricAuth();
-      }
-    } else {
-      // No PIN set, proceed directly
-      loadMnemonic();
+    // PIN is always required now for encryption
+    setViewState('auth');
+    // Try biometric first if available
+    if (lockSettings.useBiometric && hasBiometricHardware) {
+      handleBiometricAuth();
     }
   };
 
   const handleBiometricAuth = async () => {
     const result = await authenticateWithBiometric(BIOMETRIC_PROMPTS.VIEW_RECOVERY);
     if (result.success) {
-      loadMnemonic();
+      // For biometric, we still need the PIN to decrypt
+      // This is a security limitation - biometric cannot decrypt data
+      // We'll show a message to enter PIN
+      Alert.alert(
+        'PIN Required',
+        'For security, your PIN is needed to decrypt your recovery phrase.',
+        [{ text: 'OK' }]
+      );
     }
   };
 
   const handlePinSubmit = async () => {
-    const isValid = await verifyPin(pin);
-    if (isValid) {
-      loadMnemonic();
-    } else {
-      setHasError(true);
-      await Haptics.notificationAsync(Haptics.NotificationFeedbackType.Error);
-      setTimeout(() => {
-        setPin('');
-        setHasError(false);
-      }, 500);
-    }
+    // Directly attempt to decrypt the mnemonic with the entered PIN
+    // This works whether lock is enabled or disabled, since PIN correctness
+    // is verified by successful decryption
+    await loadMnemonic(pin);
   };
 
   // Auto-submit when PIN is complete
@@ -102,16 +101,23 @@ export function RecoveryPhraseViewer({ visible, onClose }: RecoveryPhraseViewerP
     }
   }, [pin, viewState]);
 
-  const loadMnemonic = async () => {
+  const loadMnemonic = async (enteredPin: string) => {
     try {
-      const phrase = await getMnemonic();
+      const phrase = await getMnemonic(enteredPin);
       if (phrase) {
+        // PIN was correct - decryption succeeded
+        verifiedPinRef.current = enteredPin;
         setMnemonic(phrase.split(' '));
         setViewState('viewing');
         setIsBlurred(true);
       } else {
-        Alert.alert('Error', 'Could not retrieve recovery phrase');
-        onClose();
+        // PIN was incorrect - decryption failed
+        setHasError(true);
+        await Haptics.notificationAsync(Haptics.NotificationFeedbackType.Error);
+        setTimeout(() => {
+          setPin('');
+          setHasError(false);
+        }, 500);
       }
     } catch {
       Alert.alert('Error', 'Failed to load recovery phrase');
@@ -190,10 +196,10 @@ export function RecoveryPhraseViewer({ visible, onClose }: RecoveryPhraseViewerP
           <Feather name="shield" size={28} color="#B8F25B" />
         </View>
         <Text className="text-xl font-semibold text-wallet-text">
-          Verify Your Identity
+          Enter Your PIN
         </Text>
         <Text className="text-wallet-text-secondary text-center px-8">
-          Enter your PIN to view your recovery phrase
+          Your PIN is required to decrypt your recovery phrase
         </Text>
       </View>
 
@@ -209,17 +215,6 @@ export function RecoveryPhraseViewer({ visible, onClose }: RecoveryPhraseViewerP
           onPress={handleDigitPress}
           onDelete={handleDelete}
         />
-
-        {lockSettings.useBiometric && hasBiometricHardware && biometricType && (
-          <Pressable
-            onPress={handleBiometricAuth}
-            className="flex-row items-center gap-2 px-4 py-2"
-          >
-            <Text className="text-wallet-accent">
-              Use {biometricType === 'faceid' ? 'Face ID' : 'Touch ID'}
-            </Text>
-          </Pressable>
-        )}
       </View>
     </View>
   );
@@ -277,6 +272,7 @@ export function RecoveryPhraseViewer({ visible, onClose }: RecoveryPhraseViewerP
       visible={visible}
       animationType="slide"
       presentationStyle="pageSheet"
+      onRequestClose={onClose}
     >
       <SafeAreaView className="flex-1 bg-wallet-bg" edges={['top', 'bottom']}>
         {/* Header */}

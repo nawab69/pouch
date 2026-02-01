@@ -1,4 +1,4 @@
-import { useEffect } from 'react';
+import { useEffect, useState } from 'react';
 import { View, Text, StyleSheet, Pressable } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { useRouter, useLocalSearchParams } from 'expo-router';
@@ -14,39 +14,54 @@ import Animated, {
 } from 'react-native-reanimated';
 import { SuccessIllustration } from '@/components/wallet-setup/illustrations/success-illustration';
 import { useWallet } from '@/hooks/use-wallet';
+import { useWalletSetup } from '@/contexts/wallet-setup-context';
+import { useAuth } from '@/hooks/use-auth';
 
 const AnimatedPressable = Animated.createAnimatedComponent(Pressable);
 
 export default function WalletSuccessScreen() {
   const router = useRouter();
-  const params = useLocalSearchParams<{ mnemonic: string; action: 'created' | 'imported' }>();
+  const params = useLocalSearchParams<{ action: 'created' | 'imported' }>();
   const { createWallet, importWallet, walletAddress } = useWallet();
+  const { pin, mnemonic, clear } = useWalletSetup();
+  const { setupPin } = useAuth();
+  const [hasSaved, setHasSaved] = useState(false);
 
   const contentOpacity = useSharedValue(0);
   const contentTranslateY = useSharedValue(30);
   const buttonScale = useSharedValue(1);
 
-  const mnemonic = params.mnemonic?.split(',') || [];
   const isCreated = params.action === 'created';
 
   // Save wallet on mount
   useEffect(() => {
     const saveWallet = async () => {
+      if (!pin || !mnemonic || mnemonic.length === 0 || hasSaved) {
+        return;
+      }
+
+      setHasSaved(true);
+
       try {
+        // First, setup PIN for app lock
+        await setupPin(pin);
+
+        // Then create/import wallet with encryption
         if (isCreated) {
-          await createWallet(mnemonic);
+          await createWallet(mnemonic, pin);
         } else {
-          await importWallet(mnemonic);
+          await importWallet(mnemonic, pin);
         }
+        // Clear context after successful creation
+        clear();
       } catch (error) {
         console.error('Failed to save wallet:', error);
+        setHasSaved(false);
       }
     };
 
-    if (mnemonic.length > 0) {
-      saveWallet();
-    }
-  }, []);
+    saveWallet();
+  }, [pin, mnemonic, hasSaved, isCreated, setupPin, createWallet, importWallet, clear]);
 
   // Animate content in
   useEffect(() => {
@@ -58,7 +73,7 @@ export default function WalletSuccessScreen() {
       800,
       withTiming(0, { duration: 500, easing: Easing.out(Easing.ease) })
     );
-  }, []);
+  }, [contentOpacity, contentTranslateY]);
 
   const handleGetStarted = () => {
     router.replace('/(tabs)');

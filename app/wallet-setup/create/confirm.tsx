@@ -146,8 +146,8 @@ export default function ConfirmMnemonicScreen() {
         } else {
           // All questions answered correctly
           router.replace({
-            pathname: '/wallet-setup/success',
-            params: { mnemonic: params.mnemonic, action: 'created' },
+            pathname: '/wallet-setup/create/pin',
+            params: { mnemonic: params.mnemonic },
           });
         }
       }, 600);

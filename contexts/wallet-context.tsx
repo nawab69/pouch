@@ -3,11 +3,21 @@ import * as SecureStore from 'expo-secure-store';
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import { deriveWalletFromMnemonic } from '@/services/blockchain';
 import { Account } from '@/types/blockchain';
+import {
+  encryptMnemonic,
+  decryptMnemonic,
+  encryptPrivateKey,
+  decryptPrivateKey,
+  deleteEncryptionSalt,
+} from '@/services/crypto/wallet-encryption';
 
 const WALLET_KEY = '@pouch/has_wallet';
-const WALLET_MNEMONIC_KEY = 'pouch_wallet_mnemonic';
 const ACCOUNTS_KEY = '@pouch/accounts';
 const SELECTED_ACCOUNT_KEY = '@pouch/selected_account';
+
+// Encrypted storage keys
+const ENCRYPTED_MNEMONIC_KEY = 'pouch_wallet_mnemonic_enc';
+const ENCRYPTED_PK_PREFIX = 'pouch_pk_enc_';
 
 interface WalletContextType {
   hasWallet: boolean | null;
@@ -15,12 +25,12 @@ interface WalletContextType {
   accounts: Account[];
   selectedAccount: Account | null;
   walletAddress: string | null;
-  createWallet: (mnemonic: string[]) => Promise<void>;
-  importWallet: (mnemonic: string[]) => Promise<void>;
+  createWallet: (mnemonic: string[], pin: string) => Promise<void>;
+  importWallet: (mnemonic: string[], pin: string) => Promise<void>;
   resetWallet: () => Promise<void>;
-  getPrivateKey: () => Promise<string | null>;
-  getMnemonic: () => Promise<string | null>;
-  addAccount: () => Promise<Account>;
+  getPrivateKey: (pin: string) => Promise<string | null>;
+  getMnemonic: (pin: string) => Promise<string | null>;
+  addAccount: (pin: string) => Promise<Account>;
   selectAccount: (index: number) => Promise<void>;
   renameAccount: (index: number, name: string) => Promise<void>;
 }
@@ -52,27 +62,6 @@ export function WalletProvider({ children }: { children: ReactNode }) {
         if (accountsJson) {
           const loadedAccounts = JSON.parse(accountsJson) as Account[];
           setAccounts(loadedAccounts);
-        } else {
-          // Migration: wallet exists but no accounts data
-          // Derive account from stored mnemonic
-          const mnemonic = await SecureStore.getItemAsync(WALLET_MNEMONIC_KEY);
-          if (mnemonic) {
-            const derivedWallet = deriveWalletFromMnemonic(mnemonic, 0);
-
-            // Store private key if not already stored
-            await SecureStore.setItemAsync(`pouch_pk_0`, derivedWallet.privateKey);
-
-            const firstAccount: Account = {
-              index: 0,
-              name: 'Account 1',
-              address: derivedWallet.address,
-              path: derivedWallet.path,
-            };
-
-            await AsyncStorage.setItem(ACCOUNTS_KEY, JSON.stringify([firstAccount]));
-            await AsyncStorage.setItem(SELECTED_ACCOUNT_KEY, '0');
-            setAccounts([firstAccount]);
-          }
         }
 
         // Load selected account index
@@ -94,16 +83,18 @@ export function WalletProvider({ children }: { children: ReactNode }) {
     setAccounts(newAccounts);
   };
 
-  const createWallet = useCallback(async (mnemonic: string[]) => {
+  const createWallet = useCallback(async (mnemonic: string[], pin: string) => {
     try {
       const phrase = mnemonic.join(' ');
       const derivedWallet = deriveWalletFromMnemonic(phrase, 0);
 
-      // Store mnemonic securely
-      await SecureStore.setItemAsync(WALLET_MNEMONIC_KEY, phrase);
+      // Encrypt and store mnemonic
+      const encryptedMnemonic = await encryptMnemonic(phrase, pin);
+      await SecureStore.setItemAsync(ENCRYPTED_MNEMONIC_KEY, encryptedMnemonic);
 
-      // Store private key for account 0
-      await SecureStore.setItemAsync(`pouch_pk_0`, derivedWallet.privateKey);
+      // Encrypt and store private key for account 0
+      const encryptedPk = await encryptPrivateKey(derivedWallet.privateKey, pin);
+      await SecureStore.setItemAsync(`${ENCRYPTED_PK_PREFIX}0`, encryptedPk);
 
       // Create first account
       const firstAccount: Account = {
@@ -125,19 +116,24 @@ export function WalletProvider({ children }: { children: ReactNode }) {
     }
   }, []);
 
-  const importWallet = useCallback(async (mnemonic: string[]) => {
-    // Same as createWallet for importing
-    await createWallet(mnemonic);
+  const importWallet = useCallback(async (mnemonic: string[], pin: string) => {
+    await createWallet(mnemonic, pin);
   }, [createWallet]);
 
   const resetWallet = useCallback(async () => {
     try {
-      // Delete all private keys
+      // Delete all encrypted private keys
       for (const account of accounts) {
-        await SecureStore.deleteItemAsync(`pouch_pk_${account.index}`);
+        await SecureStore.deleteItemAsync(`${ENCRYPTED_PK_PREFIX}${account.index}`);
       }
 
-      await SecureStore.deleteItemAsync(WALLET_MNEMONIC_KEY);
+      // Delete encrypted mnemonic
+      await SecureStore.deleteItemAsync(ENCRYPTED_MNEMONIC_KEY);
+
+      // Delete encryption salt
+      await deleteEncryptionSalt();
+
+      // Clear AsyncStorage
       await AsyncStorage.removeItem(WALLET_KEY);
       await AsyncStorage.removeItem(ACCOUNTS_KEY);
       await AsyncStorage.removeItem(SELECTED_ACCOUNT_KEY);
@@ -150,36 +146,43 @@ export function WalletProvider({ children }: { children: ReactNode }) {
     }
   }, [accounts]);
 
-  const getPrivateKey = useCallback(async (): Promise<string | null> => {
+  const getPrivateKey = useCallback(async (pin: string): Promise<string | null> => {
     try {
-      return await SecureStore.getItemAsync(`pouch_pk_${selectedAccountIndex}`);
+      const encryptedPk = await SecureStore.getItemAsync(`${ENCRYPTED_PK_PREFIX}${selectedAccountIndex}`);
+      if (!encryptedPk) return null;
+
+      return await decryptPrivateKey(encryptedPk, pin);
     } catch (error) {
       console.warn('Error getting private key:', error);
       return null;
     }
   }, [selectedAccountIndex]);
 
-  const getMnemonic = useCallback(async (): Promise<string | null> => {
+  const getMnemonic = useCallback(async (pin: string): Promise<string | null> => {
     try {
-      return await SecureStore.getItemAsync(WALLET_MNEMONIC_KEY);
+      const encryptedMnemonic = await SecureStore.getItemAsync(ENCRYPTED_MNEMONIC_KEY);
+      if (!encryptedMnemonic) return null;
+
+      return await decryptMnemonic(encryptedMnemonic, pin);
     } catch (error) {
       console.warn('Error getting mnemonic:', error);
       return null;
     }
   }, []);
 
-  const addAccount = useCallback(async (): Promise<Account> => {
+  const addAccount = useCallback(async (pin: string): Promise<Account> => {
     try {
-      const mnemonic = await getMnemonic();
+      const mnemonic = await getMnemonic(pin);
       if (!mnemonic) {
-        throw new Error('No mnemonic found');
+        throw new Error('Invalid PIN or mnemonic not found');
       }
 
       const newIndex = accounts.length;
       const derivedWallet = deriveWalletFromMnemonic(mnemonic, newIndex);
 
-      // Store private key for new account
-      await SecureStore.setItemAsync(`pouch_pk_${newIndex}`, derivedWallet.privateKey);
+      // Encrypt and store private key for new account
+      const encryptedPk = await encryptPrivateKey(derivedWallet.privateKey, pin);
+      await SecureStore.setItemAsync(`${ENCRYPTED_PK_PREFIX}${newIndex}`, encryptedPk);
 
       const newAccount: Account = {
         index: newIndex,
