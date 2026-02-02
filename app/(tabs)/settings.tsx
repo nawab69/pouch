@@ -160,6 +160,13 @@ export default function SettingsScreen() {
             description={lockSettings.isEnabled ? 'Enabled' : 'Disabled'}
             onPress={() => router.push('/app-lock')}
           />
+
+          <SettingsItem
+            icon="users"
+            label="Address Book"
+            description="Manage saved addresses"
+            onPress={() => router.push('/address-book')}
+          />
         </View>
 
         {/* About Section */}

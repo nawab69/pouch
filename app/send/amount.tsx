@@ -1,4 +1,4 @@
-import { useState, useCallback } from 'react';
+import { useState, useCallback, useEffect } from 'react';
 import {
   View,
   Text,
@@ -13,8 +13,11 @@ import { useRouter, useLocalSearchParams } from 'expo-router';
 import Feather from '@expo/vector-icons/Feather';
 import { useWallet } from '@/hooks/use-wallet';
 import { useNetwork } from '@/hooks/use-network';
+import { useContacts } from '@/hooks/use-contacts';
 import { isValidAddress } from '@/services/blockchain';
 import { Token } from '@/types/blockchain';
+import { Contact } from '@/types/contacts';
+import { ContactPickerModal } from '@/components/contacts/contact-picker-modal';
 
 export default function SendAmountScreen() {
   const router = useRouter();
@@ -30,11 +33,14 @@ export default function SendAmountScreen() {
 
   const { walletAddress } = useWallet();
   const { selectedNetwork, networkType } = useNetwork();
+  const { contacts, findByAddress, recordUsage } = useContacts();
 
   const [amount, setAmount] = useState('');
   const [recipient, setRecipient] = useState('');
   const [amountError, setAmountError] = useState<string | null>(null);
   const [recipientError, setRecipientError] = useState<string | null>(null);
+  const [selectedContact, setSelectedContact] = useState<Contact | null>(null);
+  const [showContactPicker, setShowContactPicker] = useState(false);
 
   // Reconstruct token from params
   const token: Token = {
@@ -49,6 +55,19 @@ export default function SendAmountScreen() {
   };
 
   const maxBalance = parseFloat(token.balanceFormatted);
+
+  // Check if entered address matches a saved contact
+  useEffect(() => {
+    const checkContact = async () => {
+      if (recipient && isValidAddress(recipient)) {
+        const contact = await findByAddress(recipient);
+        setSelectedContact(contact);
+      } else {
+        setSelectedContact(null);
+      }
+    };
+    checkContact();
+  }, [recipient, findByAddress]);
 
   const validateAmount = useCallback(
     (value: string): boolean => {
@@ -116,7 +135,13 @@ export default function SendAmountScreen() {
     setAmountError(null);
   };
 
-  const handleContinue = () => {
+  const handleContactSelect = (contact: Contact) => {
+    setRecipient(contact.address);
+    setSelectedContact(contact);
+    setRecipientError(null);
+  };
+
+  const handleContinue = async () => {
     const isAmountValid = validateAmount(amount);
     const isRecipientValid = validateRecipient(recipient);
 
@@ -127,6 +152,11 @@ export default function SendAmountScreen() {
     // Check if sending to self
     if (recipient.toLowerCase() === walletAddress?.toLowerCase()) {
       Alert.alert('Warning', 'You are about to send to your own address');
+    }
+
+    // Record usage if sending to a saved contact
+    if (selectedContact) {
+      await recordUsage(selectedContact.id);
     }
 
     // Navigate to confirm screen
@@ -221,15 +251,33 @@ export default function SendAmountScreen() {
                 recipientError ? 'border-wallet-negative' : 'border-transparent'
               }`}
             >
-              <TextInput
-                value={recipient}
-                onChangeText={handleRecipientChange}
-                placeholder="0x..."
-                placeholderTextColor="#8E8E93"
-                autoCapitalize="none"
-                autoCorrect={false}
-                className="text-wallet-text text-base font-mono"
-              />
+              {/* Contact name if matched */}
+              {selectedContact && (
+                <View className="flex-row items-center gap-2 mb-2">
+                  <Feather name="user" size={12} color="#B8F25B" />
+                  <Text className="text-wallet-accent text-sm font-medium">
+                    {selectedContact.name}
+                  </Text>
+                </View>
+              )}
+              <View className="flex-row items-center gap-2">
+                <TextInput
+                  value={recipient}
+                  onChangeText={handleRecipientChange}
+                  placeholder="0x..."
+                  placeholderTextColor="#8E8E93"
+                  autoCapitalize="none"
+                  autoCorrect={false}
+                  className="flex-1 text-wallet-text text-base font-mono"
+                />
+                <Pressable
+                  onPress={() => setShowContactPicker(true)}
+                  className="w-9 h-9 rounded-full bg-wallet-card-light items-center justify-center"
+                  hitSlop={8}
+                >
+                  <Feather name="users" size={16} color="#8B9A92" />
+                </Pressable>
+              </View>
             </View>
             {recipientError && (
               <Text className="text-wallet-negative text-sm mt-2">
@@ -269,6 +317,14 @@ export default function SendAmountScreen() {
           </Pressable>
         </View>
       </KeyboardAvoidingView>
+
+      {/* Contact Picker Modal */}
+      <ContactPickerModal
+        visible={showContactPicker}
+        onClose={() => setShowContactPicker(false)}
+        onSelect={handleContactSelect}
+        contacts={contacts}
+      />
     </SafeAreaView>
   );
 }
