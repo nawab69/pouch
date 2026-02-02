@@ -1,3 +1,4 @@
+// Crypto polyfills - MUST be first import
 import "@/utils/crypto-polyfill";
 import "../global.css";
 import { useEffect, useState, useCallback } from 'react';
@@ -14,6 +15,7 @@ import { SplashScreen } from '@/components/splash-screen';
 import { NetworkProvider } from '@/contexts/network-context';
 import { WalletProvider } from '@/contexts/wallet-context';
 import { AuthProvider } from '@/contexts/auth-context';
+import { WalletConnectProvider } from '@/contexts/walletconnect-context';
 import { LockScreen } from '@/components/lock-screen/lock-screen';
 
 const ONBOARDING_KEY = '@pouch/onboarding_complete';
@@ -84,6 +86,7 @@ export default function RootLayout() {
         <WalletProvider>
           <NetworkProvider>
             <AuthProvider>
+              <WalletConnectProvider>
               <View style={{ flex: 1, backgroundColor: '#0D1411' }}>
                 <Stack screenOptions={{ headerShown: false, animation: 'slide_from_right' }}>
                   <Stack.Screen name="onboarding" options={{ animation: 'fade' }} />
@@ -141,6 +144,13 @@ export default function RootLayout() {
                       contentStyle: { backgroundColor: 'transparent' },
                     }}
                   />
+                  <Stack.Screen
+                    name="walletconnect"
+                    options={{
+                      animation: 'slide_from_right',
+                      gestureEnabled: true,
+                    }}
+                  />
                 </Stack>
                 <StatusBar style="light" />
 
@@ -152,6 +162,7 @@ export default function RootLayout() {
                   <SplashScreen onAnimationComplete={handleSplashComplete} />
                 )}
               </View>
+              </WalletConnectProvider>
             </AuthProvider>
           </NetworkProvider>
         </WalletProvider>

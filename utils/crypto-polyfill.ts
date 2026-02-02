@@ -1,5 +1,6 @@
-// This MUST be imported before any crypto libraries (ethers, @scure/bip39, etc.)
+// This MUST be imported before any crypto libraries (ethers, @scure/bip39, WalletConnect, etc.)
 import 'react-native-get-random-values';
+import 'fast-text-encoding'; // TextEncoder/TextDecoder polyfill
 
 // Additional expo-crypto polyfill as fallback
 import * as ExpoCrypto from 'expo-crypto';
@@ -19,4 +20,9 @@ if (typeof global.crypto.getRandomValues === 'undefined') {
 
     return array;
   };
+}
+
+// Polyfill for WalletConnect - ensure global is defined
+if (typeof global.self === 'undefined') {
+  (global as any).self = global;
 }

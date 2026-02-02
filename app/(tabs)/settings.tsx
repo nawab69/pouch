@@ -167,6 +167,13 @@ export default function SettingsScreen() {
             description="Manage saved addresses"
             onPress={() => router.push('/address-book')}
           />
+
+          <SettingsItem
+            icon="link"
+            label="WalletConnect"
+            description="Connect to dApps"
+            onPress={() => router.push('/walletconnect')}
+          />
         </View>
 
         {/* About Section */}

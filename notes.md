@@ -28,8 +28,16 @@
   - Usage tracking for smart sorting
   - Duplicate address prevention
 
+## In Progress
+- [ ] WalletConnect v2 Integration
+  - Core infrastructure complete (SignClient, session management, request handling)
+  - UI components created (session cards, proposal modal, request modal)
+  - QR scanner for pairing with expo-camera
+  - Settings entry added
+  - **Requires:** WalletConnect Project ID from cloud.reown.com
+  - **To test:** Replace `YOUR_PROJECT_ID_HERE` in `/constants/walletconnect.ts`
+
 ## Future TODOs
-- WalletConnect
 - Price Alerts
 - Custom Token Import
 - NFT Support

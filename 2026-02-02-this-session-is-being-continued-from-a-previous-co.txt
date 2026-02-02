@@ -1,0 +1,578 @@
+
+ ▐▛███▜▌   Claude Code v2.1.29
+▝▜█████▛▘  Opus 4.5 · Claude Max
+  ▘▘ ▝▝    ~/Developer/crypto-wallet
+
+✻ Conversation compacted (ctrl+o for history)
+
+  ⎿  Read utils/crypto-polyfill.ts (29 lines)
+  ⎿  Read app/_layout.tsx (173 lines)
+  ⎿  Read services/walletconnect/session-service.ts (314 lines)
+  ⎿  Read services/walletconnect/sign-client.ts (86 lines)
+  ⎿  Read contexts/walletconnect-context.tsx (276 lines)
+  ⎿  Plan file referenced (~/.claude/plans/concurrent-foraging-lampson.md)
+
+⏺ Let me read the scan.tsx file to fix the QR scanner navigation issue.
+
+⏺ Read 2 files (ctrl+o to expand)
+
+⏺ I see the issue. The scan screen is presented as a modal, and router.back()
+  can fail if called at the wrong time. Let me fix the navigation by using
+  router.dismiss() for modals and adding proper error handling.
+
+⏺ Update(app/walletconnect/scan.tsx)
+  ⎿  Added 20 lines, removed 2 lines
+      1 -import { useState, useEffect } from 'react';                    
+      1 +import { useState, useEffect, useCallback } from 'react';       
+      2  import { View, Text, Pressable, StyleSheet, Alert } from 'react-
+         native';
+      3  import { SafeAreaView } from 'react-native-safe-area-context';
+      4 -import { useRouter } from 'expo-router';                        
+      4 +import { useRouter, useNavigation } from 'expo-router';         
+      5  import { CameraView, useCameraPermissions } from 'expo-camera';
+      6  import * as Haptics from 'expo-haptics';
+      7  import Feather from '@expo/vector-icons/Feather';
+     ...
+       9  
+      10  export default function WalletConnectScanScreen() {
+      11    const router = useRouter();
+      12 +  const navigation = useNavigation();                          
+      13    const { connect } = useWalletConnect();
+      14    const [permission, requestPermission] = useCameraPermissions(
+          );
+      15    const [scanned, setScanned] = useState(false);
+      16 +  const [isConnecting, setIsConnecting] = useState(false);     
+      17  
+      18 +  // Safe dismiss function for modal                           
+      19 +  const dismissModal = useCallback(() => {                     
+      20 +    try {                                                      
+      21 +      if (navigation.canGoBack()) {                            
+      22 +        navigation.goBack();                                   
+      23 +      } else {                                                 
+      24 +        // Fallback: navigate to walletconnect index           
+      25 +        router.replace('/walletconnect');                      
+      26 +      }                                                        
+      27 +    } catch (error) {                                          
+      28 +      console.warn('[WalletConnect] Navigation error:', error);
+      29 +      // Last resort fallback                                  
+      30 +      router.replace('/walletconnect');                        
+      31 +    }                                                          
+      32 +  }, [navigation, router]);                                    
+      33 +                                                               
+      34    // Request permission on mount
+      35    useEffect(() => {
+      36      if (!permission?.granted) {
+
+⏺ Update(app/walletconnect/scan.tsx)
+  ⎿  Added 7 lines, removed 2 lines
+      39    }, [permission, requestPermission]);
+      40  
+      41    const handleBarCodeScanned = async ({ data }: { data: string 
+          }) => {
+      42 -    if (scanned) return;                                       
+      42 +    if (scanned || isConnecting) return;                       
+      43  
+      44      // Check if it's a valid WC URI
+      45      if (!data.startsWith('wc:')) {
+     ...
+      53      }
+      54  
+      55      setScanned(true);
+      56 +    setIsConnecting(true);                                     
+      57      Haptics.notificationAsync(Haptics.NotificationFeedbackType.
+          Success);
+      58  
+      59      try {
+      60 +      // Start pairing (this just initiates the connection, doe
+         +sn't wait for approval)                                        
+      61        await connect(data);
+      60 -      router.back();                                           
+      62 +      // Dismiss modal after pairing is initiated              
+      63 +      // The session_proposal event will be handled by the cont
+         +ext                                                            
+      64 +      dismissModal();                                          
+      65      } catch (error) {
+      66        console.error('[WalletConnect] Scan failed:', error);
+      67 +      setIsConnecting(false);                                  
+      68        Alert.alert(
+      69          'Connection Failed',
+      70          error instanceof Error ? error.message : 'Failed to con
+          nect to dApp',
+
+⏺ Update(app/walletconnect/scan.tsx)
+  ⎿  Added 1 line, removed 1 line
+      79        <SafeAreaView className="flex-1 bg-wallet-bg" edges={['to
+          p', 'bottom']}>
+      80          <View className="flex-row items-center px-5 py-4">
+      81            <Pressable
+      82 -            onPress={() => router.back()}                      
+      82 +            onPress={dismissModal}                             
+      83              className="w-10 h-10 rounded-full bg-wallet-card it
+          ems-center justify-center"
+      84            >
+      85              <Feather name="x" size={20} color="#FFFFFF" />
+
+⏺ Update(app/walletconnect/scan.tsx)
+  ⎿  Added 3 lines, removed 2 lines
+      125          <SafeAreaView edges={['top']}>
+      126            <View className="flex-row items-center justify-betwe
+           en px-5 py-4">
+      127              <Pressable
+      128 -              onPress={() => router.back()}                   
+      128 +              onPress={dismissModal}                          
+      129 +              disabled={isConnecting}                         
+      130                className="w-10 h-10 rounded-full bg-black/50 it
+           ems-center justify-center"
+      131              >
+      132                <Feather name="x" size={20} color="#FFFFFF" />
+      133              </Pressable>
+      134              <Text className="text-white text-lg font-semibold"
+           >
+      134 -              Scan QR Code                                    
+      135 +              {isConnecting ? 'Connecting...' : 'Scan QR Code'
+          +}                                                             
+      136              </Text>
+      137              <View className="w-10" />
+      138            </View>
+
+⏺ Update(app/walletconnect/scan.tsx)
+  ⎿  Added 3 lines, removed 1 line
+      154            <View className="items-center px-8 pb-8">
+      155              <View className="bg-black/50 px-6 py-4 rounded-2xl
+           ">
+      156                <Text className="text-white text-center">
+      157 -                Point your camera at a WalletConnect QR code  
+      157 +                {isConnecting                                 
+      158 +                  ? 'Establishing connection...'              
+      159 +                  : 'Point your camera at a WalletConnect QR c
+          +ode'}                                                         
+      160                </Text>
+      161              </View>
+      162            </View>
+
+⏺ Let me verify the changes are correct.
+
+⏺ Read 1 file (ctrl+o to expand)
+
+⏺ I've fixed the QR scanner navigation issue. The changes:
+
+  1. Added useNavigation - Gets access to navigation.canGoBack() to check if
+  back navigation is possible
+  2. Created dismissModal function - A safe navigation handler that:
+    - Checks navigation.canGoBack() before attempting to go back
+    - Falls back to router.replace('/walletconnect') if back navigation isn't
+  available
+    - Has error handling with a last-resort fallback
+  3. Added isConnecting state - Provides visual feedback during connection:
+    - Header shows "Connecting..." while pairing
+    - Instructions update to "Establishing connection..."
+    - Close button is disabled during connection
+  4. Updated all navigation handlers - Both the close button and successful scan
+   now use the safe dismissModal function
+
+  The fix addresses the "GO_BACK was not handled by any navigator" error by
+  checking if the navigation stack can handle going back before attempting it.
+  If not (which can happen with modals in certain states), it uses replace
+  navigation instead.
+
+  You can now test QR code scanning again - it should dismiss the modal properly
+   after successful connection.
+
+✻ Brewed for 2m 1s
+
+❯ Still got this error                                                      
+                                                                            
+   LOG  [WalletConnect] Pairing attempt 1/3                                 
+   LOG  [WalletConnect] Pairing attempt 1/3                                 
+   LOG  [WalletConnect] Pairing initiated with URI                          
+   LOG  [WalletConnect] Pairing initiated with URI                          
+   ERROR  {"context": "core/verify-api", "level": 50, "time":               
+  1770045125882}                                                            
+                                                                            
+  Call Stack                                                                
+    construct (<native>)                                                    
+    apply (<native>)                                                        
+    _construct (node_modules/@babel/runtime/helpers/construct.js:4:65)      
+    Wrapper (node_modules/@babel/runtime/helpers/wrapNativeSuper.js:15:23)  
+    construct (<native>)                                                    
+    _callSuper (node_modules/@babel/runtime/helpers/callSuper.js:5:108)     
+    NamelessError                                                           
+  (node_modules/@expo/metro-runtime/src/metroServerLogs.native.ts:102:20)   
+    captureCurrentStack                                                     
+  (node_modules/@expo/metro-runtime/src/metroServerLogs.native.ts:106:27)   
+    HMRClient.log                                                           
+  (node_modules/@expo/metro-runtime/src/metroServerLogs.native.ts:39:79)    
+    console.level                                                           
+  (node_modules/react-native/Libraries/Core/setUpDeveloperTools.js:41:24)   
+    J#forwardToConsole                                                      
+  (node_modules/@walletconnect/logger/dist/index.cjs.js:1:10049)            
+    J#appendToLogs                                                          
+  (node_modules/@walletconnect/logger/dist/index.cjs.js:1:10395)            
+    xe#write (node_modules/@walletconnect/logger/dist/index.cjs.js:1:10933) 
+    L$argument_1.write                                                      
+  (node_modules/@walletconnect/logger/dist/index.cjs.js:1:12821)            
+    call (<native>)                                                         
+    apply (<native>)                                                        
+    <anonymous>                                                             
+  (node_modules/@walletconnect/logger/dist/index.cjs.js:1:5590)             
+    apply (<native>)                                                        
+    <anonymous>                                                             
+  (node_modules/@walletconnect/logger/dist/index.cjs.js:1:5220)             
+    O$argument_2 (node_modules/@walletconnect/core/dist/index.cjs:1:85587)  
+    next (<native>)                                                         
+    asyncGeneratorStep                                                      
+  (node_modules/@babel/runtime/helpers/asyncToGenerator.js:3:17)            
+    _next (node_modules/@babel/runtime/helpers/asyncToGenerator.js:17:27)   
+    tryCallOne (address at (InternalBytecode.js:1:1180)                     
+    anonymous (address at (InternalBytecode.js:1:1874)                      
+   ERROR  {"context": "core/verify-api", "level": 50, "time":               
+  1770045125949}                                                            
+                                                                            
+  Call Stack                                                                
+    construct (<native>)                                                    
+    apply (<native>)                                                        
+    _construct (node_modules/@babel/runtime/helpers/construct.js:4:65)      
+    Wrapper (node_modules/@babel/runtime/helpers/wrapNativeSuper.js:15:23)  
+    construct (<native>)                                                    
+    _callSuper (node_modules/@babel/runtime/helpers/callSuper.js:5:108)     
+    NamelessError                                                           
+  (node_modules/@expo/metro-runtime/src/metroServerLogs.native.ts:102:20)   
+    captureCurrentStack                                                     
+  (node_modules/@expo/metro-runtime/src/metroServerLogs.native.ts:106:27)   
+    HMRClient.log                                                           
+  (node_modules/@expo/metro-runtime/src/metroServerLogs.native.ts:39:79)    
+    console.level                                                           
+  (node_modules/react-native/Libraries/Core/setUpDeveloperTools.js:41:24)   
+    J#forwardToConsole                                                      
+  (node_modules/@walletconnect/logger/dist/index.cjs.js:1:10049)            
+    J#appendToLogs                                                          
+  (node_modules/@walletconnect/logger/dist/index.cjs.js:1:10395)            
+    xe#write (node_modules/@walletconnect/logger/dist/index.cjs.js:1:10933) 
+    L$argument_1.write                                                      
+  (node_modules/@walletconnect/logger/dist/index.cjs.js:1:12821)            
+    call (<native>)                                                         
+    apply (<native>)                                                        
+    <anonymous>                                                             
+  (node_modules/@walletconnect/logger/dist/index.cjs.js:1:5590)             
+    apply (<native>)                                                        
+    <anonymous>                                                             
+  (node_modules/@walletconnect/logger/dist/index.cjs.js:1:5220)             
+    O$argument_2 (node_modules/@walletconnect/core/dist/index.cjs:1:85758)  
+    next (<native>)                                                         
+    asyncGeneratorStep                                                      
+  (node_modules/@babel/runtime/helpers/asyncToGenerator.js:3:17)            
+    _next (node_modules/@babel/runtime/helpers/asyncToGenerator.js:17:27)   
+    tryCallOne (address at (InternalBytecode.js:1:1180)                     
+    anonymous (address at (InternalBytecode.js:1:1874)                      
+   LOG  [WalletConnect] Session proposal received: 1770045104784114         
+
+⏺ The good news is that the WalletConnect connection is actually working.
+  Looking at the logs:
+
+  1. Pairing initiated with URI - pairing succeeded
+  2. Session proposal received: 1770045104784114 - session proposal came through
+
+  The core/verify-api errors are not critical - they're from WalletConnect's
+  dApp verification system trying to validate the connecting dApp. This is a
+  known issue and doesn't affect functionality.
+
+  Two questions:
+  1. Is the navigation error ("GO_BACK was not handled") still happening? Or is
+  it just these verify-api errors now?
+  2. Did the proposal modal appear? After the session proposal is received, the
+  proposal modal should show up.
+
+  If the navigation is working but you just want to suppress the noisy
+  verify-api errors, I can add a logger configuration. Let me know what you're
+  experiencing now.
+
+  If the proposal modal isn't showing, let me check that the UI is properly
+  displaying it when pendingProposal is set.
+
+⏺ Read 1 file (ctrl+o to expand)
+
+⏺ The screen setup looks correct. Let me check the ProposalModal to ensure it
+  displays properly when a proposal is received.
+
+⏺ Read 1 file (ctrl+o to expand)
+
+⏺ I found a bug in the ProposalModal. There's incorrect usage of useState
+  instead of useEffect for initializing the selected chains. Let me fix that.
+
+⏺ Update(components/walletconnect/proposal-modal.tsx)
+  ⎿  Added 1 line, removed 1 line
+      1 -import { useState } from 'react';                               
+      1 +import { useState, useEffect } from 'react';                    
+      2  import { View, Text, Pressable, Modal, ScrollView, ActivityIndic
+         ator } from 'react-native';
+      3  import { Image } from 'expo-image';
+      4  import Feather from '@expo/vector-icons/Feather';
+
+⏺ Update(components/walletconnect/proposal-modal.tsx)
+  ⎿  Added 2 lines, removed 2 lines
+      20    const [isRejecting, setIsRejecting] = useState(false);
+      21  
+      22    // Initialize selected chains when proposal changes
+      23 -  useState(() => {                                             
+      23 +  useEffect(() => {                                            
+      24      if (proposalInfo) {
+      25        setSelectedChainIds(proposalInfo.requestedChainIds);
+      26      }
+      27 -  });                                                          
+      27 +  }, [proposalInfo]);                                          
+      28  
+      29    const handleApprove = async () => {
+      30      if (selectedChainIds.length === 0) {
+
+⏺ Let me also check the hook to ensure useProposalInfo returns the correct data.
+
+⏺ Read 1 file (ctrl+o to expand)
+
+⏺ The hooks look fine. I fixed the bug in ProposalModal (changed useState to
+  useEffect for initializing selected chains). Let me add some debugging to help
+   track if the modal is displaying properly.
+
+⏺ Update(components/walletconnect/proposal-modal.tsx)
+  ⎿  Added 6 lines
+      22    // Initialize selected chains when proposal changes
+      23    useEffect(() => {
+      24      if (proposalInfo) {
+      25 +      console.log('[WalletConnect] ProposalModal showing with i
+         +nfo:', proposalInfo.dAppName);                                 
+      26        setSelectedChainIds(proposalInfo.requestedChainIds);
+      27      }
+      28    }, [proposalInfo]);
+      29  
+      30 +  // Debug visibility                                          
+      31 +  useEffect(() => {                                            
+      32 +    console.log('[WalletConnect] ProposalModal visible:', visib
+         +le, 'hasInfo:', !!proposalInfo);                               
+      33 +  }, [visible, proposalInfo]);                                 
+      34 +                                                               
+      35    const handleApprove = async () => {
+      36      if (selectedChainIds.length === 0) {
+      37        Haptics.notificationAsync(Haptics.NotificationFeedbackTyp
+          e.Error);
+
+⏺ I've made the following fixes:
+
+  1. scan.tsx - Fixed the navigation error by:
+    - Using navigation.canGoBack() to check if back navigation is possible
+    - Falling back to router.replace('/walletconnect') if not
+    - Adding a connecting state for better UX
+  2. proposal-modal.tsx - Fixed a bug where:
+    - Changed useState(() => {...}) to useEffect(() => {...}, [proposalInfo])
+    - The selected chains weren't being initialized properly when proposal
+  changed
+    - Added debug logs to track modal visibility
+
+  About the core/verify-api errors: These are not critical - they're from
+  WalletConnect's dApp verification system. The connection still works fine as
+  you can see from "Session proposal received" appearing in the logs.
+
+  Try the QR scan again. You should now see:
+  1. The scan modal dismisses without error
+  2. Debug logs: [WalletConnect] ProposalModal visible: true hasInfo: true
+  3. The proposal modal should appear asking you to approve the connection
+
+  Let me know if the proposal modal appears or if you see any other issues.
+
+✻ Baked for 57s
+
+❯ When I sign a tx with wallet connect. I see invalid pin                   
+                                                                            
+   LOG  [WalletConnect] Session request received: 1770045306819074          
+  eth_sendTransaction                                                       
+   ERROR  [WalletConnect] Failed to sign request: [Error: missing revert    
+  data (action="estimateGas", data=null, reason=null, transaction={ "data": 
+   "0xcc872b660000000000000000000000000000000000000000000000000000000002faf 
+  080", "from": "0x173Dc63BEcA9C693Ead32F58b90e2F4e7dAa2617", "to":         
+  "0x7169D38820dfd117C3FA1f22a697dBA58d90BA06" }, invocation=null,          
+  revert=null, code=CALL_EXCEPTION, version=6.16.0)]                        
+                                                                            
+  Call Stack                                                                
+    makeError (node_modules/ethers/lib.esm/utils/errors.js:132:30)          
+    getBuiltinCallException                                                 
+  (node_modules/ethers/lib.esm/abi/abi-coder.js:102:21)                     
+    AbiCoder.getBuiltinCallException                                        
+  (node_modules/ethers/lib.esm/abi/abi-coder.js:203:39)                     
+    JsonRpcApiProvider#getRpcError                                          
+  (node_modules/ethers/lib.esm/providers/provider-jsonrpc.js:691:55)        
+    <anonymous>                                                             
+  (node_modules/ethers/lib.esm/providers/provider-jsonrpc.js:298:56)        
+    next (<native>)                                                         
+    <anonymous>                                                             
+  (node_modules/ethers/lib.esm/providers/provider-jsonrpc.js:280:62)        
+    next (<native>)                                                         
+    asyncGeneratorStep                                                      
+  (node_modules/@babel/runtime/helpers/asyncToGenerator.js:3:17)            
+    _next (node_modules/@babel/runtime/helpers/asyncToGenerator.js:17:27)   
+    tryCallOne (address at (InternalBytecode.js:1:1180)                     
+    anonymous (address at (InternalBytecode.js:1:1874)                      
+   ERROR  [WalletConnect] Failed to sign request: [Error: missing revert    
+  data (action="estimateGas", data=null, reason=null, transaction={ "data": 
+   "0xcc872b660000000000000000000000000000000000000000000000000000000002faf 
+  080", "from": "0x173Dc63BEcA9C693Ead32F58b90e2F4e7dAa2617", "to":         
+  "0x7169D38820dfd117C3FA1f22a697dBA58d90BA06" }, invocation=null,          
+  revert=null, code=CALL_EXCEPTION, version=6.16.0)]                        
+                                                                            
+  Call Stack                                                                
+    makeError (node_modules/ethers/lib.esm/utils/errors.js:132:30)          
+    getBuiltinCallException                                                 
+  (node_modules/ethers/lib.esm/abi/abi-coder.js:102:21)                     
+    AbiCoder.getBuiltinCallException                                        
+  (node_modules/ethers/lib.esm/abi/abi-coder.js:203:39)                     
+    JsonRpcApiProvider#getRpcError                                          
+  (node_modules/ethers/lib.esm/providers/provider-jsonrpc.js:691:55)        
+    <anonymous>                                                             
+  (node_modules/ethers/lib.esm/providers/provider-jsonrpc.js:298:56)        
+    next (<native>)                                                         
+    <anonymous>                                                             
+  (node_modules/ethers/lib.esm/providers/provider-jsonrpc.js:280:62)        
+    next (<native>)                                                         
+    asyncGeneratorStep                                                      
+  (node_modules/@babel/runtime/helpers/asyncToGenerator.js:3:17)            
+    _next (node_modules/@babel/runtime/helpers/asyncToGenerator.js:17:27)   
+    tryCallOne (address at (InternalBytecode.js:1:1180)                     
+    anonymous (address at (InternalBytecode.js:1:1874)                      
+                                                                            
+
+⏺ The error is not about an invalid PIN - it's a transaction estimation failure.
+   The actual error is:
+
+  missing revert data (action="estimateGas"...)
+
+  The transaction is failing because the contract call would revert (likely
+  insufficient funds, wrong network, or contract issue). But the UI is
+  incorrectly showing "Invalid PIN" because the error handling catches all
+  errors as PIN errors.
+
+  Let me fix the error handling in the request modal.
+
+⏺ Read 1 file (ctrl+o to expand)
+
+⏺ Let me check the PinConfirmModal to see where the "Invalid PIN" message comes
+  from.
+
+⏺ Read 1 file (ctrl+o to expand)
+
+⏺ Found the issue. In PinConfirmModal, when onConfirm returns false OR throws an
+   error, it shows "Incorrect PIN". But the transaction failure is a different
+  error entirely.
+
+  The fix is to distinguish between PIN errors and transaction errors in the
+  request modal's handlePinConfirm function.
+
+⏺ Update(components/walletconnect/request-modal.tsx)
+  ⎿  Added 13 lines, removed 2 lines
+      54        return true;
+      55      } catch (err) {
+      56        console.error('[WalletConnect] Failed to sign request:', 
+          err);
+      57 -      setError(err instanceof Error ? err.message : 'Failed to 
+         -sign request');                                                
+      57 +      const errorMessage = err instanceof Error ? err.message :
+         + 'Failed to sign request';                                     
+      58 +                                                               
+      59 +      // Only return false (show "Invalid PIN") for actual PIN 
+         +errors                                                         
+      60 +      // For other errors (transaction failures, etc.), close P
+         +IN modal and show error                                        
+      61 +      if (errorMessage === 'Invalid PIN') {                    
+      62 +        setIsProcessing(false);                                
+      63 +        return false; // This tells PinConfirmModal to show "In
+         +correct PIN"                                                   
+      64 +      }                                                        
+      65 +                                                               
+      66 +      // For non-PIN errors, close PIN modal and show the actua
+         +l error                                                        
+      67 +      setShowPinModal(false);                                  
+      68 +      setError(errorMessage);                                  
+      69        setIsProcessing(false);
+      59 -      return false;                                            
+      70 +      return true; // Return true so PIN modal doesn't show "In
+         +correct PIN"                                                   
+      71      }
+      72    };
+      73  
+
+⏺ Now let me also add better error message formatting for common transaction
+  errors to make them more user-friendly.
+
+⏺ Update(components/walletconnect/request-modal.tsx)
+  ⎿  Added 24 lines
+       9  import { formatTransactionValue } from '@/services/walletconnec
+          t/request-handler';
+      10  import type { WCParsedRequest } from '@/types/walletconnect';
+      11  
+      12 +/**                                                            
+      13 + * Format error messages for better user understanding         
+      14 + */                                                            
+      15 +function formatErrorMessage(error: string): string {           
+      16 +  // Gas estimation failures                                   
+      17 +  if (error.includes('estimateGas') || error.includes('CALL_EXC
+         +EPTION')) {                                                    
+      18 +    return 'Transaction would fail. The contract may have rejec
+         +ted the call, or you may have insufficient funds.';            
+      19 +  }                                                            
+      20 +  // Insufficient funds                                        
+      21 +  if (error.includes('insufficient funds') || error.includes('I
+         +NSUFFICIENT_FUNDS')) {                                         
+      22 +    return 'Insufficient funds to complete this transaction.'; 
+      23 +  }                                                            
+      24 +  // Nonce errors                                              
+      25 +  if (error.includes('nonce')) {                               
+      26 +    return 'Transaction nonce error. Please try again.';       
+      27 +  }                                                            
+      28 +  // Network errors                                            
+      29 +  if (error.includes('network') || error.includes('connection')
+         +) {                                                            
+      30 +    return 'Network error. Please check your connection and try
+         + again.';                                                      
+      31 +  }                                                            
+      32 +  // Keep original if no match (but truncate if too long)      
+      33 +  return error.length > 150 ? error.slice(0, 150) + '...' : err
+         +or;                                                            
+      34 +}                                                              
+      35 +                                                               
+      36  interface RequestModalProps {
+      37    visible: boolean;
+      38    onClose: () => void;
+
+⏺ Update(components/walletconnect/request-modal.tsx)
+  ⎿  Added 2 lines, removed 1 line
+      89  
+      90        // For non-PIN errors, close PIN modal and show the actua
+          l error
+      91        setShowPinModal(false);
+      92 -      setError(errorMessage);                                  
+      92 +      setError(formatErrorMessage(errorMessage));              
+      93        setIsProcessing(false);
+      94 +      Haptics.notificationAsync(Haptics.NotificationFeedbackTyp
+         +e.Error);                                                      
+      95        return true; // Return true so PIN modal doesn't show "In
+          correct PIN"
+      96      }
+      97    };
+
+⏺ I've fixed the error handling. Now:
+
+  1. Invalid PIN → Shows "Incorrect PIN. Try again." in the PIN modal (correct
+  behavior)
+  2. Transaction failures → Closes PIN modal and shows a user-friendly error in
+  the request modal
+
+  For the specific error you're seeing (estimateGas failure), it will now show:
+  "Transaction would fail. The contract may have rejected the call, or you may 
+  have insufficient funds."
+
+  This is the actual issue - the transaction is failing at the contract level,
+  likely due to:
+  - Insufficient funds/tokens
+  - Contract rejecting the call (wrong parameters, paused, etc.)
+  - Wrong network for the contract
+
+  Try the WalletConnect transaction again. The PIN modal should close and you'll
+   see the actual error message explaining why the transaction failed.
+
+✻ Churned for 1m 14s
