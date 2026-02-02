@@ -6,6 +6,7 @@ import { useEffect, useState } from 'react';
 import { LayoutChangeEvent, Pressable, StyleSheet, View } from 'react-native';
 import { Gesture, GestureDetector } from 'react-native-gesture-handler';
 import Animated, {
+  cancelAnimation,
   runOnJS,
   useAnimatedStyle,
   useSharedValue,
@@ -44,7 +45,18 @@ export function CustomTabBar({ state, navigation }: BottomTabBarProps) {
   };
 
   useEffect(() => {
-    if (containerWidth > 0 && !isDragging.value) {
+    if (containerWidth > 0) {
+      // Cancel any ongoing animations to prevent stuck states
+      cancelAnimation(indicatorPosition);
+      cancelAnimation(indicatorScale);
+
+      // Reset dragging state when tab changes via press (not drag)
+      isDragging.value = false;
+
+      // Reset scale to normal
+      indicatorScale.value = withSpring(1, { damping: 15, stiffness: 200 });
+
+      // Animate to new position
       indicatorPosition.value = withSpring(state.index * tabWidth, {
         damping: 15,
         stiffness: 150,
