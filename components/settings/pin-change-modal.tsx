@@ -6,8 +6,9 @@ import Feather from '@expo/vector-icons/Feather';
 import { PinInput } from '@/components/lock-screen/pin-input';
 import { PinKeypad } from '@/components/lock-screen/pin-keypad';
 import { PIN_LENGTH } from '@/constants/auth';
+import { verifyPin } from '@/services/auth/pin-service';
 
-type Step = 'current' | 'new' | 'confirm' | 'processing';
+type Step = 'current' | 'verifying' | 'new' | 'confirm' | 'processing';
 
 interface PinChangeModalProps {
   visible: boolean;
@@ -45,10 +46,8 @@ export function PinChangeModal({
   // Handle PIN completion for each step
   useEffect(() => {
     if (step === 'current' && currentPin.length === PIN_LENGTH) {
-      // Move to new PIN step
-      setTimeout(() => {
-        setStep('new');
-      }, 200);
+      // Verify current PIN immediately
+      handleVerifyCurrentPin();
     } else if (step === 'new' && newPin.length === PIN_LENGTH) {
       // Move to confirm step
       setTimeout(() => {
@@ -72,6 +71,40 @@ export function PinChangeModal({
       }
     }
   }, [currentPin, newPin, confirmPin, step]);
+
+  const handleVerifyCurrentPin = async () => {
+    setStep('verifying');
+
+    try {
+      const isValid = await verifyPin(currentPin);
+
+      if (isValid) {
+        setStep('new');
+      } else {
+        setHasError(true);
+        setErrorMessage('Incorrect PIN. Please try again.');
+        Haptics.notificationAsync(Haptics.NotificationFeedbackType.Error);
+
+        setTimeout(() => {
+          setStep('current');
+          setCurrentPin('');
+          setHasError(false);
+          setErrorMessage('');
+        }, 1500);
+      }
+    } catch {
+      setHasError(true);
+      setErrorMessage('Failed to verify PIN. Please try again.');
+      Haptics.notificationAsync(Haptics.NotificationFeedbackType.Error);
+
+      setTimeout(() => {
+        setStep('current');
+        setCurrentPin('');
+        setHasError(false);
+        setErrorMessage('');
+      }, 1500);
+    }
+  };
 
   const handlePinChange = async () => {
     setStep('processing');
@@ -114,7 +147,7 @@ export function PinChangeModal({
   };
 
   const handleDigitPress = (digit: string) => {
-    if (step === 'processing') return;
+    if (step === 'processing' || step === 'verifying') return;
     if (activePin.length < PIN_LENGTH) {
       setActivePin((prev) => prev + digit);
       setHasError(false);
@@ -123,14 +156,14 @@ export function PinChangeModal({
   };
 
   const handleDelete = () => {
-    if (step === 'processing') return;
+    if (step === 'processing' || step === 'verifying') return;
     setActivePin((prev) => prev.slice(0, -1));
     setHasError(false);
     setErrorMessage('');
   };
 
   const handleBack = () => {
-    if (step === 'processing') return;
+    if (step === 'processing' || step === 'verifying') return;
 
     if (step === 'confirm') {
       setStep('new');
@@ -151,6 +184,8 @@ export function PinChangeModal({
     switch (step) {
       case 'current':
         return 'Enter Current PIN';
+      case 'verifying':
+        return 'Verifying PIN';
       case 'new':
         return 'Enter New PIN';
       case 'confirm':
@@ -164,6 +199,8 @@ export function PinChangeModal({
     switch (step) {
       case 'current':
         return 'Enter your current 6-digit PIN';
+      case 'verifying':
+        return 'Checking your current PIN...';
       case 'new':
         return 'Choose a new 6-digit PIN';
       case 'confirm':
@@ -177,6 +214,8 @@ export function PinChangeModal({
     switch (step) {
       case 'current':
         return 'unlock';
+      case 'verifying':
+        return 'loader';
       case 'new':
       case 'confirm':
         return 'lock';
@@ -184,6 +223,8 @@ export function PinChangeModal({
         return 'refresh-cw';
     }
   };
+
+  const isProcessingState = step === 'processing' || step === 'verifying';
 
   return (
     <Modal
@@ -196,9 +237,9 @@ export function PinChangeModal({
         <View className="flex-row items-center px-5 py-4">
           <Pressable
             onPress={handleBack}
-            disabled={step === 'processing'}
+            disabled={isProcessingState}
             className="w-10 h-10 rounded-full bg-wallet-card items-center justify-center active:opacity-70"
-            style={step === 'processing' ? { opacity: 0.5 } : undefined}
+            style={isProcessingState ? { opacity: 0.5 } : undefined}
           >
             <Feather name="arrow-left" size={20} color="#FFFFFF" />
           </Pressable>
@@ -212,7 +253,7 @@ export function PinChangeModal({
           {/* Instructions */}
           <View className="items-center gap-4">
             <View className="w-16 h-16 rounded-full bg-wallet-card items-center justify-center">
-              {step === 'processing' ? (
+              {isProcessingState ? (
                 <ActivityIndicator size="small" color="#B8F25B" />
               ) : (
                 <Feather name={getIcon()} size={28} color="#B8F25B" />
@@ -226,7 +267,7 @@ export function PinChangeModal({
             </Text>
 
             {/* Step indicator */}
-            {step !== 'processing' && (
+            {!isProcessingState && (
               <View className="flex-row items-center gap-2 mt-2">
                 <View
                   className={`w-2 h-2 rounded-full ${
@@ -248,7 +289,7 @@ export function PinChangeModal({
           </View>
 
           {/* PIN Input */}
-          {step !== 'processing' && (
+          {!isProcessingState && (
             <View className="items-center gap-4">
               <PinInput length={activePin.length} hasError={hasError} />
               {errorMessage ? (
@@ -261,8 +302,8 @@ export function PinChangeModal({
             </View>
           )}
 
-          {/* Processing indicator */}
-          {step === 'processing' && (
+          {/* Processing/Verifying indicator */}
+          {isProcessingState && (
             <View className="items-center gap-4">
               <View className="bg-wallet-card rounded-xl p-6">
                 <ActivityIndicator size="large" color="#B8F25B" />
@@ -273,14 +314,16 @@ export function PinChangeModal({
                 </Text>
               ) : (
                 <Text className="text-wallet-text-secondary text-center px-8">
-                  Please wait while we securely update your wallet...
+                  {step === 'verifying'
+                    ? 'Verifying your current PIN...'
+                    : 'Please wait while we securely update your wallet...'}
                 </Text>
               )}
             </View>
           )}
 
           {/* Keypad */}
-          {step !== 'processing' && (
+          {!isProcessingState && (
             <PinKeypad
               onPress={handleDigitPress}
               onDelete={handleDelete}
@@ -288,7 +331,7 @@ export function PinChangeModal({
           )}
 
           {/* Spacer for processing state */}
-          {step === 'processing' && <View className="h-60" />}
+          {isProcessingState && <View className="h-60" />}
         </View>
       </SafeAreaView>
     </Modal>

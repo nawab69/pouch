@@ -23,7 +23,7 @@ export default function AssetDetailScreen() {
   const { id } = useLocalSearchParams<{ id: string }>();
   const { walletAddress } = useWallet();
   const { selectedNetworkId, networkType } = useNetwork();
-  const { getToken } = useTokens({
+  const { getToken, isLoading: isTokensLoading } = useTokens({
     address: walletAddress,
     networkId: selectedNetworkId,
     networkType,
@@ -104,7 +104,11 @@ export default function AssetDetailScreen() {
           </Pressable>
         </View>
         <View className="flex-1 items-center justify-center">
-          <Text className="text-wallet-text-secondary">Token not found</Text>
+          {isTokensLoading ? (
+            <ActivityIndicator size="large" color="#B8F25B" />
+          ) : (
+            <Text className="text-wallet-text-secondary">Token not found</Text>
+          )}
         </View>
       </SafeAreaView>
     );

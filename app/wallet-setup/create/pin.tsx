@@ -10,20 +10,24 @@ import { PinKeypad } from '@/components/lock-screen/pin-keypad';
 import { useWalletSetup } from '@/contexts/wallet-setup-context';
 import { PIN_LENGTH } from '@/constants/auth';
 
-type Step = 'create' | 'confirm';
+type Step = 'acknowledge' | 'create' | 'confirm';
 
 export default function CreatePinScreen() {
   const router = useRouter();
   const params = useLocalSearchParams<{ mnemonic: string }>();
   const { setPin: setContextPin, setMnemonic } = useWalletSetup();
 
-  const [step, setStep] = useState<Step>('create');
+  const [step, setStep] = useState<Step>('acknowledge');
   const [pin, setPin] = useState('');
   const [confirmPin, setConfirmPin] = useState('');
   const [hasError, setHasError] = useState(false);
 
-  const currentPin = step === 'create' ? pin : confirmPin;
+  const currentPin = step === 'create' ? pin : step === 'confirm' ? confirmPin : '';
   const setCurrentPin = step === 'create' ? setPin : setConfirmPin;
+
+  const handleAcknowledge = () => {
+    setStep('create');
+  };
 
   // Store mnemonic in context on mount
   useEffect(() => {
@@ -83,10 +87,73 @@ export default function CreatePinScreen() {
       setStep('create');
       setConfirmPin('');
       setHasError(false);
+    } else if (step === 'create') {
+      setStep('acknowledge');
+      setPin('');
+      setHasError(false);
     } else {
       router.back();
     }
   };
+
+  // Acknowledgment screen
+  if (step === 'acknowledge') {
+    return (
+      <SafeAreaView style={styles.container} edges={['top', 'bottom']}>
+        <StatusBar style="light" />
+
+        {/* Header */}
+        <View style={styles.header}>
+          <Pressable onPress={handleBack} style={styles.backButton}>
+            <Feather name="arrow-left" size={20} color="#FFFFFF" />
+          </Pressable>
+          <Text style={styles.headerTitle}>Secure Your Wallet</Text>
+          <View style={styles.headerSpacer} />
+        </View>
+
+        {/* Content */}
+        <View style={styles.acknowledgeContent}>
+          {/* Icon */}
+          <View style={styles.acknowledgeIconContainer}>
+            <Feather name="alert-triangle" size={48} color="#F59E0B" />
+          </View>
+
+          {/* Title */}
+          <Text style={styles.acknowledgeTitle}>Important Security Notice</Text>
+
+          {/* Warning card */}
+          <View style={styles.acknowledgeCard}>
+            <View style={styles.acknowledgeCardRow}>
+              <Feather name="lock" size={20} color="#B8F25B" />
+              <Text style={styles.acknowledgeCardText}>
+                Your PIN encrypts your wallet and protects your funds.
+              </Text>
+            </View>
+            <View style={styles.acknowledgeCardRow}>
+              <Feather name="alert-circle" size={20} color="#F59E0B" />
+              <Text style={styles.acknowledgeCardText}>
+                If you forget your PIN, you will need your recovery phrase to restore access.
+              </Text>
+            </View>
+            <View style={styles.acknowledgeCardRow}>
+              <Feather name="shield" size={20} color="#8B9A92" />
+              <Text style={styles.acknowledgeCardText}>
+                Never share your PIN or recovery phrase with anyone.
+              </Text>
+            </View>
+          </View>
+        </View>
+
+        {/* Button */}
+        <View style={styles.acknowledgeFooter}>
+          <Pressable onPress={handleAcknowledge} style={styles.acknowledgeButton}>
+            <Text style={styles.acknowledgeButtonText}>I Understand</Text>
+            <Feather name="arrow-right" size={20} color="#0D1411" />
+          </Pressable>
+        </View>
+      </SafeAreaView>
+    );
+  }
 
   return (
     <SafeAreaView style={styles.container} edges={['top', 'bottom']}>
@@ -125,16 +192,6 @@ export default function CreatePinScreen() {
             <Text style={styles.errorText}>PINs do not match. Try again.</Text>
           )}
         </View>
-
-        {/* Info card */}
-        {step === 'create' && (
-          <View style={styles.infoCard}>
-            <Feather name="alert-triangle" size={18} color="#F59E0B" />
-            <Text style={styles.infoText}>
-              If you forget your PIN, you will need to restore your wallet using your recovery phrase.
-            </Text>
-          </View>
-        )}
       </View>
 
       {/* Keypad */}
@@ -238,5 +295,67 @@ const styles = StyleSheet.create({
   },
   keypadContainer: {
     paddingBottom: 24,
+  },
+  acknowledgeContent: {
+    flex: 1,
+    alignItems: 'center',
+    paddingHorizontal: 24,
+    paddingTop: 60,
+  },
+  acknowledgeIconContainer: {
+    width: 100,
+    height: 100,
+    borderRadius: 50,
+    backgroundColor: 'rgba(245, 158, 11, 0.1)',
+    justifyContent: 'center',
+    alignItems: 'center',
+    marginBottom: 32,
+  },
+  acknowledgeTitle: {
+    fontFamily: 'Outfit_700Bold',
+    fontSize: 26,
+    color: '#FFFFFF',
+    marginBottom: 32,
+    textAlign: 'center',
+  },
+  acknowledgeCard: {
+    backgroundColor: '#1A1F1D',
+    borderRadius: 16,
+    padding: 20,
+    gap: 20,
+    borderWidth: 1,
+    borderColor: '#2A332F',
+    width: '100%',
+    maxWidth: 340,
+  },
+  acknowledgeCardRow: {
+    flexDirection: 'row',
+    alignItems: 'flex-start',
+    gap: 14,
+  },
+  acknowledgeCardText: {
+    flex: 1,
+    fontFamily: 'Outfit_400Regular',
+    fontSize: 15,
+    color: '#FFFFFF',
+    lineHeight: 22,
+  },
+  acknowledgeFooter: {
+    paddingHorizontal: 24,
+    paddingBottom: 24,
+  },
+  acknowledgeButton: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'center',
+    gap: 10,
+    backgroundColor: '#B8F25B',
+    paddingVertical: 18,
+    borderRadius: 16,
+  },
+  acknowledgeButtonText: {
+    fontFamily: 'Outfit_600SemiBold',
+    fontSize: 17,
+    color: '#0D1411',
   },
 });

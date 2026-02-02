@@ -2,12 +2,13 @@ import { useState, useEffect, useCallback, useMemo, useRef } from 'react';
 import { View, Text, Pressable, ActivityIndicator, Alert } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { useRouter, useLocalSearchParams } from 'expo-router';
-import { formatEther } from 'ethers';
+import { formatEther, parseEther } from 'ethers';
 import Feather from '@expo/vector-icons/Feather';
 import { GasFeeSelector } from '@/components/gas-fee-selector';
 import { PinConfirmModal } from '@/components/pin-confirm-modal';
 import { useWallet } from '@/hooks/use-wallet';
 import { useNetwork } from '@/hooks/use-network';
+import { useTokens } from '@/hooks/use-tokens';
 import { useTransactions } from '@/hooks/use-transactions';
 import { formatAddress } from '@/services/blockchain';
 import { Token, GasEstimate, GasOption } from '@/types/blockchain';
@@ -28,6 +29,11 @@ export default function SendConfirmScreen() {
 
   const { walletAddress, getPrivateKey } = useWallet();
   const { selectedNetworkId, selectedNetwork, networkType } = useNetwork();
+  const { nativeToken } = useTokens({
+    address: walletAddress,
+    networkId: selectedNetworkId,
+    networkType,
+  });
 
   // Store PIN for transaction signing
   const pendingPinRef = useRef<string>('');
@@ -67,6 +73,38 @@ export default function SendConfirmScreen() {
 
   const amount = params.amount ?? '0';
   const recipient = params.recipient ?? '';
+
+  // Check if user has sufficient gas balance
+  const insufficientGasBalance = useMemo(() => {
+    if (!gasEstimate || !nativeToken) return null;
+
+    const nativeBalanceWei = BigInt(nativeToken.balance || '0');
+    const gasCostWei = gasEstimate.estimatedCostWei;
+
+    if (token.isNative) {
+      // For native token transfers: need amount + gas
+      const amountWei = parseEther(amount);
+      const totalNeeded = amountWei + gasCostWei;
+      if (nativeBalanceWei < totalNeeded) {
+        const shortfall = totalNeeded - nativeBalanceWei;
+        return {
+          message: `Insufficient ${selectedNetwork.symbol} for amount + gas`,
+          shortfall: formatEther(shortfall),
+        };
+      }
+    } else {
+      // For ERC20 transfers: need gas only from native balance
+      if (nativeBalanceWei < gasCostWei) {
+        const shortfall = gasCostWei - nativeBalanceWei;
+        return {
+          message: `Insufficient ${selectedNetwork.symbol} for gas`,
+          shortfall: formatEther(shortfall),
+        };
+      }
+    }
+
+    return null;
+  }, [gasEstimate, nativeToken, token.isNative, amount, selectedNetwork.symbol]);
 
   // Memoize the load gas function to avoid dependency issues
   const loadGas = useCallback(async () => {
@@ -250,15 +288,30 @@ export default function SendConfirmScreen() {
             </View>
           </View>
         )}
+
+        {/* Insufficient Gas Warning */}
+        {insufficientGasBalance && (
+          <View className="bg-wallet-negative/20 rounded-xl p-4 mt-4 flex-row items-center gap-3">
+            <Feather name="alert-triangle" size={20} color="#FF3B30" />
+            <View className="flex-1">
+              <Text className="text-wallet-negative font-medium">
+                {insufficientGasBalance.message}
+              </Text>
+              <Text className="text-wallet-text-secondary text-sm mt-1">
+                Need ~{parseFloat(insufficientGasBalance.shortfall).toFixed(6)} more {selectedNetwork.symbol}
+              </Text>
+            </View>
+          </View>
+        )}
       </View>
 
       {/* Confirm Button */}
       <View className="px-5 pb-8">
         <Pressable
           onPress={handleConfirmPress}
-          disabled={isSending || isLoadingGas || !gasEstimate}
+          disabled={isSending || isLoadingGas || !gasEstimate || !!insufficientGasBalance}
           className={`py-4 rounded-xl items-center flex-row justify-center gap-2 ${
-            isSending || isLoadingGas || !gasEstimate
+            isSending || isLoadingGas || !gasEstimate || insufficientGasBalance
               ? 'bg-wallet-card-light'
               : 'bg-wallet-accent'
           }`}
@@ -273,12 +326,12 @@ export default function SendConfirmScreen() {
           ) : (
             <Text
               className={`font-semibold text-lg ${
-                isLoadingGas || !gasEstimate
+                isLoadingGas || !gasEstimate || insufficientGasBalance
                   ? 'text-wallet-text-secondary'
                   : 'text-wallet-bg'
               }`}
             >
-              Confirm & Send
+              {insufficientGasBalance ? 'Insufficient Gas' : 'Confirm & Send'}
             </Text>
           )}
         </Pressable>

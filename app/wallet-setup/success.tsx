@@ -10,6 +10,7 @@ import Animated, {
   withSpring,
   withDelay,
   withTiming,
+  withRepeat,
   Easing,
 } from 'react-native-reanimated';
 import { SuccessIllustration } from '@/components/wallet-setup/illustrations/success-illustration';
@@ -26,12 +27,25 @@ export default function WalletSuccessScreen() {
   const { pin, mnemonic, clear } = useWalletSetup();
   const { setupPin } = useAuth();
   const [hasSaved, setHasSaved] = useState(false);
+  const [isCreating, setIsCreating] = useState(true);
+
+  // Skeleton animation
+  const skeletonOpacity = useSharedValue(0.3);
 
   const contentOpacity = useSharedValue(0);
   const contentTranslateY = useSharedValue(30);
   const buttonScale = useSharedValue(1);
 
   const isCreated = params.action === 'created';
+
+  // Start skeleton animation
+  useEffect(() => {
+    skeletonOpacity.value = withRepeat(
+      withTiming(0.7, { duration: 800 }),
+      -1,
+      true
+    );
+  }, [skeletonOpacity]);
 
   // Save wallet on mount
   useEffect(() => {
@@ -41,6 +55,7 @@ export default function WalletSuccessScreen() {
       }
 
       setHasSaved(true);
+      setIsCreating(true);
 
       try {
         // First, setup PIN for app lock
@@ -54,9 +69,11 @@ export default function WalletSuccessScreen() {
         }
         // Clear context after successful creation
         clear();
+        setIsCreating(false);
       } catch (error) {
         console.error('Failed to save wallet:', error);
         setHasSaved(false);
+        setIsCreating(false);
       }
     };
 
@@ -88,9 +105,13 @@ export default function WalletSuccessScreen() {
     transform: [{ scale: buttonScale.value }],
   }));
 
+  const skeletonStyle = useAnimatedStyle(() => ({
+    opacity: skeletonOpacity.value,
+  }));
+
   // Format address for display
   const formatAddress = (address: string | null) => {
-    if (!address) return '0x...';
+    if (!address) return '';
     return `${address.slice(0, 8)}...${address.slice(-6)}`;
   };
 
@@ -122,10 +143,14 @@ export default function WalletSuccessScreen() {
             </View>
             <View style={styles.addressTextContainer}>
               <Text style={styles.addressLabel}>Wallet Address</Text>
-              <Text style={styles.addressValue}>{formatAddress(walletAddress)}</Text>
+              {isCreating || !walletAddress ? (
+                <Animated.View style={[styles.addressSkeleton, skeletonStyle]} />
+              ) : (
+                <Text style={styles.addressValue}>{formatAddress(walletAddress)}</Text>
+              )}
             </View>
-            <Pressable style={styles.copyButton}>
-              <Feather name="copy" size={16} color="#8B9A92" />
+            <Pressable style={styles.copyButton} disabled={isCreating || !walletAddress}>
+              <Feather name="copy" size={16} color={isCreating || !walletAddress ? '#4A5652' : '#8B9A92'} />
             </Pressable>
           </View>
         </Animated.View>
@@ -214,6 +239,13 @@ const styles = StyleSheet.create({
     fontFamily: 'Outfit_500Medium',
     fontSize: 15,
     color: '#FFFFFF',
+  },
+  addressSkeleton: {
+    width: 140,
+    height: 18,
+    backgroundColor: '#2A332F',
+    borderRadius: 4,
+    marginTop: 2,
   },
   copyButton: {
     width: 36,

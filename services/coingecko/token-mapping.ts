@@ -4,7 +4,7 @@ import { NetworkId } from '@/types/blockchain';
 // Native token CoinGecko IDs by network
 export const NATIVE_TOKEN_IDS: Record<NetworkId, string> = {
   ethereum: 'ethereum',
-  polygon: 'matic-network',
+  polygon: 'polygon-ecosystem-token',
   arbitrum: 'ethereum', // ARB uses ETH as native
   optimism: 'ethereum', // OP uses ETH as native
   base: 'ethereum', // Base uses ETH as native
@@ -22,7 +22,8 @@ export const TOKEN_IDS_BY_SYMBOL: Record<string, string> = {
   AAVE: 'aave',
   ARB: 'arbitrum',
   OP: 'optimism',
-  MATIC: 'matic-network',
+  MATIC: 'polygon-ecosystem-token',
+  POL: 'polygon-ecosystem-token',
   SHIB: 'shiba-inu',
   PEPE: 'pepe',
   APE: 'apecoin',
