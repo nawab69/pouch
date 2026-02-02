@@ -20,9 +20,15 @@
   - Price impact warnings (yellow >1%, red >5%)
   - Swap transaction history with local storage
   - Inline error messages for no liquidity pools
+- [x] Address Book
+  - Add, edit, delete contacts with name, address, and notes
+  - Wallet accounts automatically appear as internal contacts
+  - Contact picker in send flow with search
+  - Shows contact name when recipient matches saved address
+  - Usage tracking for smart sorting
+  - Duplicate address prevention
 
 ## Future TODOs
-- Address Book
 - WalletConnect
 - Price Alerts
 - Custom Token Import
