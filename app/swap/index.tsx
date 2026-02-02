@@ -16,14 +16,13 @@ import {
 import { PinConfirmModal } from '@/components/pin-confirm-modal';
 import { Token } from '@/types/blockchain';
 import { getPriceImpactLevel } from '@/services/swap/swap-types';
-import { saveSwapTransaction } from '@/services/swap';
 
 export default function SwapScreen() {
   const router = useRouter();
   const { walletAddress, getPrivateKey } = useWallet();
-  const { selectedNetworkId, selectedNetwork, networkType } = useNetwork();
+  const { selectedNetworkId, networkType } = useNetwork();
 
-  const { tokens, nativeToken, refreshTokens } = useTokens({
+  const { tokens, nativeToken } = useTokens({
     address: walletAddress,
     networkId: selectedNetworkId,
     networkType,
@@ -84,48 +83,12 @@ export default function SwapScreen() {
     }
   }, [nativeToken, sellToken, setSellToken]);
 
-  // Sync token balances when tokens array updates
+  // Show error alert
   useEffect(() => {
-    if (!tokens.length) return;
-
-    // Update sellToken balance if it exists in tokens
-    if (sellToken) {
-      const updatedSellToken = tokens.find(
-        (t) =>
-          (sellToken.isNative && t.isNative) ||
-          (!sellToken.isNative && t.contractAddress === sellToken.contractAddress)
-      );
-      if (updatedSellToken && updatedSellToken.balance !== sellToken.balance) {
-        setSellToken(updatedSellToken);
-      }
-    }
-
-    // Update buyToken balance if it exists in tokens
-    if (buyToken) {
-      const updatedBuyToken = tokens.find(
-        (t) =>
-          (buyToken.isNative && t.isNative) ||
-          (!buyToken.isNative && t.contractAddress === buyToken.contractAddress)
-      );
-      if (updatedBuyToken && updatedBuyToken.balance !== buyToken.balance) {
-        setBuyToken(updatedBuyToken);
-      }
-    }
-  }, [tokens, sellToken, buyToken, setSellToken, setBuyToken]);
-
-  // Determine if error is a quote error (show inline) vs transaction error (show alert)
-  const isQuoteError = error && (
-    error.includes('No liquidity pool') ||
-    error.includes('Failed to get quote') ||
-    error.includes('pool found')
-  );
-
-  // Show alert only for transaction errors, not quote errors
-  useEffect(() => {
-    if (error && !isQuoteError) {
+    if (error) {
       Alert.alert('Error', error, [{ text: 'OK', onPress: clearError }]);
     }
-  }, [error, isQuoteError, clearError]);
+  }, [error, clearError]);
 
   const handleOpenTokenSelect = (type: 'sell' | 'buy') => {
     setSelectingFor(type);
@@ -146,7 +109,7 @@ export default function SwapScreen() {
       // For native tokens, leave some for gas
       if (sellToken.isNative) {
         const balance = parseFloat(sellToken.balanceFormatted) || 0;
-        const maxAmount = Math.max(0, balance - 0.01);
+        const maxAmount = Math.max(0, balance - 0.01); // Leave 0.01 for gas
         setSellAmount(maxAmount.toString());
       } else {
         setSellAmount(sellToken.balanceFormatted);
@@ -213,18 +176,7 @@ export default function SwapScreen() {
       setPendingAction(null);
 
       if (result) {
-        // Save swap to local history
-        if (walletAddress) {
-          await saveSwapTransaction(
-            result,
-            selectedNetworkId,
-            networkType,
-            walletAddress
-          );
-        }
-
-        // Navigate to swap success screen
-        router.push({
+        router.replace({
           pathname: '/swap/success',
           params: {
             txHash: result.hash,
@@ -235,8 +187,6 @@ export default function SwapScreen() {
             buySymbol: result.buyToken.symbol,
           },
         });
-        // Refresh tokens after swap
-        refreshTokens();
       }
     }
 
@@ -328,7 +278,7 @@ export default function SwapScreen() {
   const buttonConfig = getButtonConfig();
 
   return (
-    <SafeAreaView className="flex-1 bg-wallet-bg" edges={['top']}>
+    <SafeAreaView className="flex-1" edges={['bottom']}>
       <ScrollView
         className="flex-1"
         contentContainerClassName="pb-6"
@@ -337,44 +287,35 @@ export default function SwapScreen() {
       >
         {/* Header */}
         <View className="flex-row items-center justify-between px-5 py-3">
-          <View className="w-10" />
+          <Pressable
+            onPress={() => router.back()}
+            className="w-10 h-10 items-center justify-center rounded-full bg-wallet-card"
+          >
+            <Feather name="x" size={20} color="#FFFFFF" />
+          </Pressable>
 
           <Text className="text-lg font-semibold text-wallet-text">Swap</Text>
 
           <SlippageSelector value={slippage} onChange={setSlippage} />
         </View>
 
-        {/* Network info */}
-        <View className="px-5 mb-2">
-          <View className="flex-row items-center gap-2">
-            <View
-              className="w-3 h-3 rounded-full"
-              style={{ backgroundColor: selectedNetwork.color }}
-            />
-            <Text className="text-wallet-text-secondary text-sm">
-              {selectedNetwork.name}
-              {networkType === 'testnet' && ` (${selectedNetwork.testnetName})`}
-            </Text>
-          </View>
-        </View>
-
-        {/* Network not supported warning */}
+        {/* Network warning for testnet */}
         {!isSupported && (
           <View className="mx-5 mb-4 bg-wallet-card rounded-xl p-4 flex-row items-center gap-3">
             <Feather name="alert-circle" size={20} color="#F7931A" />
             <View className="flex-1">
               <Text className="text-[#F7931A] font-medium">
-                Swaps Not Available
+                Testnet Mode
               </Text>
               <Text className="text-wallet-text-secondary text-sm">
-                Uniswap V3 is not available on this network.
+                Swaps are only available on mainnet. Switch to mainnet in settings.
               </Text>
             </View>
           </View>
         )}
 
         {/* Swap inputs */}
-        <View className="px-5 pt-2 gap-2">
+        <View className="px-5 pt-4 gap-2">
           {/* Sell token */}
           <SwapTokenInput
             type="sell"
@@ -390,7 +331,7 @@ export default function SwapScreen() {
           <View className="items-center -my-4 z-10">
             <Pressable
               onPress={swapTokens}
-              className="w-10 h-10 rounded-full bg-wallet-card-light items-center justify-center border-4 border-wallet-bg active:opacity-70"
+              className="w-10 h-10 rounded-full bg-wallet-card-light items-center justify-center border-4 border-wallet-bg"
             >
               <Feather name="arrow-down" size={20} color="#B8F25B" />
             </Pressable>
@@ -406,24 +347,6 @@ export default function SwapScreen() {
             isLoading={isQuoteLoading}
           />
         </View>
-
-        {/* Quote error (shown inline) */}
-        {isQuoteError && (
-          <View className="mx-5 mt-4 bg-wallet-card rounded-xl p-4 flex-row items-start gap-3">
-            <Feather name="alert-circle" size={18} color="#EF4444" />
-            <View className="flex-1">
-              <Text className="text-red-500 font-medium">
-                No Liquidity Available
-              </Text>
-              <Text className="text-wallet-text-secondary text-sm mt-1">
-                There's no liquidity pool for this token pair on the current network. Try a different token pair.
-              </Text>
-            </View>
-            <Pressable onPress={clearError} className="p-1">
-              <Feather name="x" size={16} color="#5C6660" />
-            </Pressable>
-          </View>
-        )}
 
         {/* Quote details */}
         {quote && (
@@ -455,7 +378,7 @@ export default function SwapScreen() {
       </ScrollView>
 
       {/* Action button */}
-      <View className="px-5 pb-28">
+      <View className="px-5 pb-8">
         <Pressable
           onPress={buttonConfig.onPress}
           disabled={buttonConfig.disabled}

@@ -291,6 +291,36 @@ export default function AssetDetailScreen() {
               <View className="gap-3">
                 {transactions.map((tx) => {
                   const isSend = tx.type === 'send';
+                  const isSwap = tx.type === 'swap';
+
+                  if (isSwap && tx.swapDetails) {
+                    // Swap transaction
+                    return (
+                      <View key={tx.hash} className="bg-wallet-card rounded-2xl p-4 flex-row items-center justify-between">
+                        <View className="flex-row items-center gap-3">
+                          <View className="w-10 h-10 rounded-full items-center justify-center bg-wallet-accent/20">
+                            <Feather name="repeat" size={18} color="#B8F25B" />
+                          </View>
+                          <View>
+                            <Text className="text-wallet-text font-medium">Swapped</Text>
+                            <Text className="text-wallet-text-muted text-xs">
+                              {tx.swapDetails.sellToken.symbol} → {tx.swapDetails.buyToken.symbol}
+                            </Text>
+                          </View>
+                        </View>
+                        <View className="items-end">
+                          <Text className="text-wallet-negative font-medium">
+                            -{parseFloat(tx.swapDetails.sellAmount).toFixed(4)} {tx.swapDetails.sellToken.symbol}
+                          </Text>
+                          <Text className="text-wallet-positive text-sm">
+                            +{parseFloat(tx.swapDetails.buyAmount).toFixed(4)} {tx.swapDetails.buyToken.symbol}
+                          </Text>
+                        </View>
+                      </View>
+                    );
+                  }
+
+                  // Send/Receive transaction
                   return (
                     <View key={tx.hash} className="bg-wallet-card rounded-2xl p-4 flex-row items-center justify-between">
                       <View className="flex-row items-center gap-3">

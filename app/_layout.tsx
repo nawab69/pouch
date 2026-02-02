@@ -131,6 +131,16 @@ export default function RootLayout() {
                       gestureEnabled: true,
                     }}
                   />
+                  <Stack.Screen
+                    name="swap"
+                    options={{
+                      animation: 'slide_from_bottom',
+                      presentation: 'transparentModal',
+                      gestureEnabled: true,
+                      gestureDirection: 'vertical',
+                      contentStyle: { backgroundColor: 'transparent' },
+                    }}
+                  />
                 </Stack>
                 <StatusBar style="light" />
 

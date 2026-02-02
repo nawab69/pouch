@@ -1,6 +1,7 @@
 import { useState, useEffect, useCallback, useMemo } from 'react';
 import { Token, NetworkId, NetworkType, Transaction } from '@/types/blockchain';
 import { getTransactionHistory } from '@/services/blockchain';
+import { getSwapHistoryForNetwork, swapToTransaction } from '@/services/swap';
 
 interface UseTokenTransactionsOptions {
   address: string | null;
@@ -38,8 +39,33 @@ export function useTokenTransactions({
     setError(null);
 
     try {
-      const history = await getTransactionHistory(address, networkId, networkType);
-      setAllTransactions(history);
+      // Fetch both blockchain history and local swap history
+      const [blockchainHistory, swapHistory] = await Promise.all([
+        getTransactionHistory(address, networkId, networkType),
+        getSwapHistoryForNetwork(address, networkId, networkType),
+      ]);
+
+      // Convert swap history to Transaction format
+      const swapTransactions = swapHistory.map(swapToTransaction);
+
+      // Merge and deduplicate by hash
+      const allTxs = [...blockchainHistory, ...swapTransactions];
+      const uniqueByHash = new Map<string, Transaction>();
+
+      for (const tx of allTxs) {
+        const existing = uniqueByHash.get(tx.hash);
+        // Prefer swap transaction type over send/receive if same hash
+        if (!existing || tx.type === 'swap') {
+          uniqueByHash.set(tx.hash, tx);
+        }
+      }
+
+      // Sort by timestamp descending
+      const merged = Array.from(uniqueByHash.values()).sort(
+        (a, b) => b.timestamp - a.timestamp
+      );
+
+      setAllTransactions(merged);
     } catch (err) {
       console.error('Error fetching transactions:', err);
       setError('Failed to load transaction history');
@@ -59,11 +85,25 @@ export function useTokenTransactions({
     }
 
     const filtered = allTransactions.filter((tx) => {
+      // For swap transactions, check both sellToken and buyToken
+      if (tx.type === 'swap' && tx.swapDetails) {
+        const { sellToken: swapSell, buyToken: swapBuy } = tx.swapDetails;
+
+        if (token.isNative) {
+          return swapSell.isNative || swapBuy.isNative;
+        } else {
+          const tokenAddr = token.contractAddress?.toLowerCase();
+          return (
+            swapSell.contractAddress?.toLowerCase() === tokenAddr ||
+            swapBuy.contractAddress?.toLowerCase() === tokenAddr
+          );
+        }
+      }
+
+      // For regular send/receive transactions
       if (token.isNative) {
-        // For native tokens, only show transactions where the tx token is also native
         return tx.token?.isNative === true;
       } else {
-        // For ERC20 tokens, filter by contract address
         return (
           tx.token?.contractAddress?.toLowerCase() ===
           token.contractAddress?.toLowerCase()

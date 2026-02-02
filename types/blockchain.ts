@@ -55,6 +55,13 @@ export interface Transaction {
   networkId: NetworkId;
   networkType: NetworkType;
   blockNumber: number;
+  // Swap-specific details (only for type === 'swap')
+  swapDetails?: {
+    sellToken: Token;
+    buyToken: Token;
+    sellAmount: string;
+    buyAmount: string;
+  };
 }
 
 // Gas estimation types

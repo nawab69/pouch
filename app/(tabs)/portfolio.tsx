@@ -23,7 +23,15 @@ export default function PortfolioScreen() {
   const [refreshing, setRefreshing] = useState(false);
   const [highlightedSymbol, setHighlightedSymbol] = useState<string | null>(null);
 
-  const { allocations, topHolding, diversificationScore, totalValue } = usePortfolioMetrics({
+  const {
+    allocations,
+    topHolding,
+    diversificationScore,
+    totalValue,
+    change24h,
+    bestPerformer,
+    worstPerformer,
+  } = usePortfolioMetrics({
     tokens,
     totalBalanceUsd,
     groupSmallHoldings: true,
@@ -115,6 +123,67 @@ export default function PortfolioScreen() {
                 onSegmentPress={handleSegmentPress}
               />
             </View>
+
+            {/* 24h Performance Card */}
+            {totalValue > 0 && (
+              <View className="mx-5 mb-4 bg-wallet-card rounded-2xl p-4">
+                <View className="flex-row items-center justify-between mb-3">
+                  <Text className="text-wallet-text-muted text-sm">24h Performance</Text>
+                  <View className="flex-row items-center gap-1.5">
+                    <View
+                      className={`w-2 h-2 rounded-full ${
+                        change24h.isPositive ? 'bg-wallet-positive' : 'bg-wallet-negative'
+                      }`}
+                    />
+                    <Text
+                      className={`text-sm font-medium ${
+                        change24h.isPositive ? 'text-wallet-positive' : 'text-wallet-negative'
+                      }`}
+                    >
+                      {change24h.isPositive ? '+' : ''}{change24h.percentChange.toFixed(2)}%
+                    </Text>
+                  </View>
+                </View>
+
+                <View className="flex-row items-center justify-between">
+                  <View>
+                    <Text className="text-wallet-text text-2xl font-bold">
+                      {change24h.isPositive ? '+' : '-'}${Math.abs(change24h.valueChange).toFixed(2)}
+                    </Text>
+                  </View>
+
+                  {/* Best & Worst */}
+                  <View className="flex-row gap-4">
+                    {bestPerformer && bestPerformer.change > 0 && (
+                      <View className="items-center">
+                        <View className="flex-row items-center gap-1">
+                          <Feather name="arrow-up-right" size={12} color="#34C759" />
+                          <Text className="text-wallet-positive text-xs font-medium">
+                            {bestPerformer.token.symbol}
+                          </Text>
+                        </View>
+                        <Text className="text-wallet-text-muted text-xs">
+                          +{bestPerformer.change.toFixed(1)}%
+                        </Text>
+                      </View>
+                    )}
+                    {worstPerformer && worstPerformer.change < 0 && (
+                      <View className="items-center">
+                        <View className="flex-row items-center gap-1">
+                          <Feather name="arrow-down-right" size={12} color="#FF3B30" />
+                          <Text className="text-wallet-negative text-xs font-medium">
+                            {worstPerformer.token.symbol}
+                          </Text>
+                        </View>
+                        <Text className="text-wallet-text-muted text-xs">
+                          {worstPerformer.change.toFixed(1)}%
+                        </Text>
+                      </View>
+                    )}
+                  </View>
+                </View>
+              </View>
+            )}
 
             {/* Stats Row */}
             <View className="flex-row mx-5 mb-4 bg-wallet-card rounded-2xl p-4">

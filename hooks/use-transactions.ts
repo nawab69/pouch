@@ -16,6 +16,10 @@ import {
   getTransactionHistory,
   waitForTransaction,
 } from '@/services/blockchain';
+import {
+  getSwapHistoryForNetwork,
+  swapToTransaction,
+} from '@/services/swap';
 
 interface UseTransactionsOptions {
   address: string | null;
@@ -35,7 +39,7 @@ export function useTransactions({
   const [isSending, setIsSending] = useState(false);
   const [error, setError] = useState<string | null>(null);
 
-  // Fetch transaction history
+  // Fetch transaction history (including swaps)
   const fetchTransactions = useCallback(async () => {
     if (!address) {
       setTransactions([]);
@@ -46,8 +50,33 @@ export function useTransactions({
     setError(null);
 
     try {
-      const history = await getTransactionHistory(address, networkId, networkType);
-      setTransactions(history);
+      // Fetch both blockchain history and local swap history
+      const [blockchainHistory, swapHistory] = await Promise.all([
+        getTransactionHistory(address, networkId, networkType),
+        getSwapHistoryForNetwork(address, networkId, networkType),
+      ]);
+
+      // Convert swap history to Transaction format
+      const swapTransactions = swapHistory.map(swapToTransaction);
+
+      // Merge and deduplicate by hash (swaps might appear in both)
+      const allTransactions = [...blockchainHistory, ...swapTransactions];
+      const uniqueByHash = new Map<string, Transaction>();
+
+      for (const tx of allTransactions) {
+        const existing = uniqueByHash.get(tx.hash);
+        // Prefer swap transaction type over send/receive if same hash
+        if (!existing || tx.type === 'swap') {
+          uniqueByHash.set(tx.hash, tx);
+        }
+      }
+
+      // Sort by timestamp descending (most recent first)
+      const merged = Array.from(uniqueByHash.values()).sort(
+        (a, b) => b.timestamp - a.timestamp
+      );
+
+      setTransactions(merged);
     } catch (err) {
       console.error('Error fetching transactions:', err);
       setError('Failed to load transaction history');
