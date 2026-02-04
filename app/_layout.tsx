@@ -16,6 +16,7 @@ import { NetworkProvider } from '@/contexts/network-context';
 import { WalletProvider } from '@/contexts/wallet-context';
 import { AuthProvider } from '@/contexts/auth-context';
 import { WalletConnectProvider } from '@/contexts/walletconnect-context';
+import { WalletConnectGlobalModals } from '@/components/walletconnect/global-modals';
 import { LockScreen } from '@/components/lock-screen/lock-screen';
 
 const ONBOARDING_KEY = '@pouch/onboarding_complete';
@@ -156,6 +157,9 @@ export default function RootLayout() {
 
                 {/* Lock screen overlay */}
                 <LockScreen />
+
+                {/* Global WalletConnect modals */}
+                <WalletConnectGlobalModals />
 
                 {/* Animated splash screen overlay */}
                 {!splashComplete && (

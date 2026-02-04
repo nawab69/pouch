@@ -7,8 +7,6 @@ import * as Clipboard from 'expo-clipboard';
 import Feather from '@expo/vector-icons/Feather';
 import { useWalletConnect } from '@/hooks/use-walletconnect';
 import { SessionList } from '@/components/walletconnect/session-list';
-import { ProposalModal } from '@/components/walletconnect/proposal-modal';
-import { RequestModal } from '@/components/walletconnect/request-modal';
 
 export default function WalletConnectScreen() {
   const router = useRouter();
@@ -16,12 +14,8 @@ export default function WalletConnectScreen() {
     isInitialized,
     isInitializing,
     sessions,
-    pendingProposal,
-    pendingRequest,
     connect,
     disconnect,
-    rejectProposal,
-    rejectRequest,
   } = useWalletConnect();
 
   const [uriInput, setUriInput] = useState('');
@@ -89,22 +83,6 @@ export default function WalletConnectScreen() {
       ]
     );
   }, [disconnect]);
-
-  const handleProposalClose = useCallback(async () => {
-    try {
-      await rejectProposal();
-    } catch (error) {
-      console.error('[WalletConnect] Failed to close proposal:', error);
-    }
-  }, [rejectProposal]);
-
-  const handleRequestClose = useCallback(async () => {
-    try {
-      await rejectRequest('User cancelled');
-    } catch (error) {
-      console.error('[WalletConnect] Failed to close request:', error);
-    }
-  }, [rejectRequest]);
 
   return (
     <SafeAreaView className="flex-1 bg-wallet-bg" edges={['top']}>
@@ -225,18 +203,6 @@ export default function WalletConnectScreen() {
           />
         </>
       )}
-
-      {/* Proposal Modal */}
-      <ProposalModal
-        visible={!!pendingProposal}
-        onClose={handleProposalClose}
-      />
-
-      {/* Request Modal */}
-      <RequestModal
-        visible={!!pendingRequest}
-        onClose={handleRequestClose}
-      />
     </SafeAreaView>
   );
 }

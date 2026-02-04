@@ -22,15 +22,9 @@ export function ProposalModal({ visible, onClose }: ProposalModalProps) {
   // Initialize selected chains when proposal changes
   useEffect(() => {
     if (proposalInfo) {
-      console.log('[WalletConnect] ProposalModal showing with info:', proposalInfo.dAppName);
       setSelectedChainIds(proposalInfo.requestedChainIds);
     }
   }, [proposalInfo]);
-
-  // Debug visibility
-  useEffect(() => {
-    console.log('[WalletConnect] ProposalModal visible:', visible, 'hasInfo:', !!proposalInfo);
-  }, [visible, proposalInfo]);
 
   const handleApprove = async () => {
     if (selectedChainIds.length === 0) {

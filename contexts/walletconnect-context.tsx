@@ -190,13 +190,22 @@ export function WalletConnectProvider({ children }: WalletConnectProviderProps) 
     refreshSessions();
   }, [pendingProposal, refreshSessions]);
 
-  // Reject a session proposal
+  // Reject a session proposal (or just clear if already handled)
   const handleRejectProposal = useCallback(async () => {
     if (!pendingProposal) {
-      throw new Error('No pending proposal');
+      // Already handled, just return silently
+      return;
     }
 
-    await rejectSession(pendingProposal.id);
+    try {
+      await rejectSession(pendingProposal.id);
+    } catch (error) {
+      // Ignore "record deleted" errors - proposal was already handled
+      const message = error instanceof Error ? error.message : '';
+      if (!message.includes('deleted')) {
+        console.error('[WalletConnect] Failed to reject proposal:', error);
+      }
+    }
     setPendingProposal(null);
   }, [pendingProposal]);
 
@@ -210,13 +219,22 @@ export function WalletConnectProvider({ children }: WalletConnectProviderProps) 
     setPendingRequest(null);
   }, [pendingRequest]);
 
-  // Reject a request
+  // Reject a request (or just clear if already handled)
   const handleRejectRequest = useCallback(async (message?: string) => {
     if (!pendingRequest) {
-      throw new Error('No pending request');
+      // Already handled, just return silently
+      return;
     }
 
-    await rejectRequest(pendingRequest.topic, pendingRequest.id, message);
+    try {
+      await rejectRequest(pendingRequest.topic, pendingRequest.id, message);
+    } catch (error) {
+      // Ignore "record deleted" errors - request was already handled
+      const errorMessage = error instanceof Error ? error.message : '';
+      if (!errorMessage.includes('deleted')) {
+        console.error('[WalletConnect] Failed to reject request:', error);
+      }
+    }
     setPendingRequest(null);
   }, [pendingRequest]);
 
