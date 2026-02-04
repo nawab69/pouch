@@ -16,8 +16,10 @@ import { NetworkProvider } from '@/contexts/network-context';
 import { WalletProvider } from '@/contexts/wallet-context';
 import { AuthProvider } from '@/contexts/auth-context';
 import { WalletConnectProvider } from '@/contexts/walletconnect-context';
+import { NotificationProvider } from '@/contexts/notification-context';
 import { WalletConnectGlobalModals } from '@/components/walletconnect/global-modals';
 import { LockScreen } from '@/components/lock-screen/lock-screen';
+import { NotificationRegistrar } from '@/components/notification-registrar';
 
 const ONBOARDING_KEY = '@pouch/onboarding_complete';
 const WALLET_KEY = '@pouch/has_wallet';
@@ -87,6 +89,7 @@ export default function RootLayout() {
         <WalletProvider>
           <NetworkProvider>
             <AuthProvider>
+              <NotificationProvider>
               <WalletConnectProvider>
               <View style={{ flex: 1, backgroundColor: '#0D1411' }}>
                 <Stack screenOptions={{ headerShown: false, animation: 'slide_from_right' }}>
@@ -161,12 +164,16 @@ export default function RootLayout() {
                 {/* Global WalletConnect modals */}
                 <WalletConnectGlobalModals />
 
+                {/* Auto-register wallet addresses for notifications */}
+                <NotificationRegistrar />
+
                 {/* Animated splash screen overlay */}
                 {!splashComplete && (
                   <SplashScreen onAnimationComplete={handleSplashComplete} />
                 )}
               </View>
               </WalletConnectProvider>
+              </NotificationProvider>
             </AuthProvider>
           </NetworkProvider>
         </WalletProvider>

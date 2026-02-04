@@ -7,6 +7,7 @@ import { useOnboarding } from '@/hooks/use-onboarding';
 import { useWallet } from '@/hooks/use-wallet';
 import { useNetwork } from '@/hooks/use-network';
 import { useAuth } from '@/hooks/use-auth';
+import { useNotifications } from '@/hooks/use-notifications';
 import { NetworkSelector } from '@/components/network-selector';
 import { RecoveryPhraseViewer } from '@/components/settings/recovery-phrase-viewer';
 
@@ -15,6 +16,7 @@ export default function SettingsScreen() {
   const { resetOnboarding } = useOnboarding();
   const { resetWallet } = useWallet();
   const { lockSettings, removePin } = useAuth();
+  const { isEnabled: notificationsEnabled, enableNotifications, disableNotifications, isLoading: notificationsLoading } = useNotifications();
   const {
     selectedNetworkId,
     selectedNetwork,
@@ -137,6 +139,44 @@ export default function SettingsScreen() {
                   </View>
                 )}
               </View>
+            </View>
+          </View>
+        </View>
+
+        {/* Notifications Section */}
+        <View className="px-5 mb-6">
+          <Text className="text-lg font-semibold text-wallet-text mb-4">
+            Notifications
+          </Text>
+
+          <View className="bg-wallet-card rounded-xl p-4">
+            <View className="flex-row items-center justify-between">
+              <View className="flex-row items-center gap-3 flex-1">
+                <View className="w-9 h-9 rounded-full bg-wallet-card-light items-center justify-center">
+                  <Feather name="bell" size={18} color="#8E8E93" />
+                </View>
+                <View className="flex-1">
+                  <Text className="text-wallet-text font-medium">
+                    Transaction Alerts
+                  </Text>
+                  <Text className="text-wallet-text-secondary text-sm">
+                    Get notified when you send or receive
+                  </Text>
+                </View>
+              </View>
+              <Switch
+                value={notificationsEnabled}
+                onValueChange={async (value) => {
+                  if (value) {
+                    await enableNotifications();
+                  } else {
+                    await disableNotifications();
+                  }
+                }}
+                disabled={notificationsLoading}
+                trackColor={{ false: '#3A3A3C', true: '#B8F25B' }}
+                thumbColor="#FFFFFF"
+              />
             </View>
           </View>
         </View>
