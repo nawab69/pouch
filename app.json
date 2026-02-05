@@ -12,7 +12,9 @@
       "supportsTablet": true,
       "infoPlist": {
         "NSFaceIDUsageDescription": "Allow Pouch to use Face ID to unlock your wallet"
-      }
+      },
+      "bundleIdentifier": "com.nawab-kibria.pouch",
+      "appleTeamId": "RT4AFUT2CR"
     },
     "android": {
       "adaptiveIcon": {
