@@ -2,14 +2,14 @@
   <defs>
     <!-- Gradient for the pouch body -->
     <linearGradient id="pouchGradient" x1="512" y1="200" x2="512" y2="850" gradientUnits="userSpaceOnUse">
-      <stop offset="0%" stop-color="#1A1F1D"/>
-      <stop offset="100%" stop-color="#0D1411"/>
+      <stop offset="0%" stop-color="#2E3B35"/>
+      <stop offset="100%" stop-color="#1A2520"/>
     </linearGradient>
 
     <!-- Gradient for the accent glow -->
     <linearGradient id="accentGradient" x1="512" y1="280" x2="512" y2="420" gradientUnits="userSpaceOnUse">
-      <stop offset="0%" stop-color="#B8F25B"/>
-      <stop offset="100%" stop-color="#9ED94A"/>
+      <stop offset="0%" stop-color="#CCFF66"/>
+      <stop offset="100%" stop-color="#B8F25B"/>
     </linearGradient>
 
     <!-- Subtle inner shadow -->
@@ -33,7 +33,7 @@
   <rect width="1024" height="1024" rx="224" fill="#0D1411"/>
 
   <!-- Subtle background pattern - grid dots -->
-  <g opacity="0.03" fill="#B8F25B">
+  <g opacity="0.06" fill="#B8F25B">
     <circle cx="128" cy="128" r="4"/>
     <circle cx="256" cy="128" r="4"/>
     <circle cx="384" cy="128" r="4"/>
@@ -103,8 +103,8 @@
        C264 460, 256 440, 256 420
        Z"
     fill="url(#pouchGradient)"
-    stroke="#232A27"
-    stroke-width="4"
+    stroke="#3D4F47"
+    stroke-width="5"
   />
 
   <!-- Pouch opening/drawstring area -->
@@ -114,8 +114,8 @@
     rx="200"
     ry="60"
     fill="#0D1411"
-    stroke="#232A27"
-    stroke-width="3"
+    stroke="#3D4F47"
+    stroke-width="4"
   />
 
   <!-- Drawstring cord - left -->
@@ -125,7 +125,7 @@
        Q320 500, 280 540"
     fill="none"
     stroke="url(#accentGradient)"
-    stroke-width="12"
+    stroke-width="14"
     stroke-linecap="round"
     filter="url(#glow)"
   />
@@ -137,43 +137,18 @@
        Q704 500, 744 540"
     fill="none"
     stroke="url(#accentGradient)"
-    stroke-width="12"
+    stroke-width="14"
     stroke-linecap="round"
     filter="url(#glow)"
   />
 
   <!-- Drawstring knot/tie - left ball -->
-  <circle cx="280" cy="560" r="28" fill="#B8F25B" filter="url(#glow)"/>
-  <circle cx="280" cy="560" r="16" fill="#9ED94A"/>
+  <circle cx="280" cy="560" r="32" fill="#B8F25B" filter="url(#glow)"/>
+  <circle cx="280" cy="560" r="18" fill="#CCFF66"/>
 
   <!-- Drawstring knot/tie - right ball -->
-  <circle cx="744" cy="560" r="28" fill="#B8F25B" filter="url(#glow)"/>
-  <circle cx="744" cy="560" r="16" fill="#9ED94A"/>
-
-  <!-- Crypto symbol in center - stylized "P" for Pouch -->
-  <g transform="translate(512, 680)">
-    <!-- Outer ring -->
-    <circle cx="0" cy="0" r="100" fill="none" stroke="#232A27" stroke-width="8"/>
-
-    <!-- Inner accent ring -->
-    <circle cx="0" cy="0" r="80" fill="none" stroke="#B8F25B" stroke-width="4" opacity="0.6"/>
-
-    <!-- Stylized P letter -->
-    <path
-      d="M-30 50 L-30 -30
-         Q-30 -50, -10 -50
-         L20 -50
-         Q50 -50, 50 -20
-         Q50 10, 20 10
-         L-30 10"
-      fill="none"
-      stroke="#B8F25B"
-      stroke-width="16"
-      stroke-linecap="round"
-      stroke-linejoin="round"
-      filter="url(#glow)"
-    />
-  </g>
+  <circle cx="744" cy="560" r="32" fill="#B8F25B" filter="url(#glow)"/>
+  <circle cx="744" cy="560" r="18" fill="#CCFF66"/>
 
   <!-- Highlight on pouch body -->
   <path
@@ -182,8 +157,8 @@
        Q340 760, 380 780"
     fill="none"
     stroke="#B8F25B"
-    stroke-width="3"
-    opacity="0.15"
+    stroke-width="4"
+    opacity="0.25"
     stroke-linecap="round"
   />
 
@@ -194,8 +169,8 @@
        Q684 760, 644 780"
     fill="none"
     stroke="#B8F25B"
-    stroke-width="3"
-    opacity="0.15"
+    stroke-width="4"
+    opacity="0.25"
     stroke-linecap="round"
   />
 </svg>

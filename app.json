@@ -13,7 +13,7 @@
       "infoPlist": {
         "NSFaceIDUsageDescription": "Allow Pouch to use Face ID to unlock your wallet"
       },
-      "bundleIdentifier": "com.nawab-kibria.pouch",
+      "bundleIdentifier": "com.nawabkibria12.pouch",
       "appleTeamId": "RT4AFUT2CR"
     },
     "android": {
@@ -52,6 +52,7 @@
       [
         "expo-notifications",
         {
+          "icon": "./assets/images/icon.png",
           "color": "#B8F25B"
         }
       ]

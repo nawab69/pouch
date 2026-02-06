@@ -2,8 +2,8 @@
   <defs>
     <!-- Gradient for accent glow -->
     <linearGradient id="accentGrad" x1="512" y1="200" x2="512" y2="800" gradientUnits="userSpaceOnUse">
-      <stop offset="0%" stop-color="#B8F25B"/>
-      <stop offset="100%" stop-color="#9ED94A"/>
+      <stop offset="0%" stop-color="#CCFF66"/>
+      <stop offset="100%" stop-color="#B8F25B"/>
     </linearGradient>
 
     <!-- Glow filter -->
@@ -41,7 +41,7 @@
        C164 580, 184 500, 240 440
        L280 400
        Z"
-    fill="#1A1F1D"
+    fill="#2E3B35"
     filter="url(#shadow)"
   />
 
@@ -62,7 +62,7 @@
        C196 570, 214 500, 264 446
        L300 410
        Z"
-    fill="#232A27"
+    fill="#384A42"
   />
 
   <!-- Pouch opening - dark ellipse -->
@@ -72,6 +72,8 @@
     rx="180"
     ry="50"
     fill="#0D1411"
+    stroke="#3D4F47"
+    stroke-width="3"
   />
 
   <!-- Drawstring - curved line across top -->
@@ -81,7 +83,7 @@
        Q624 380, 704 330"
     fill="none"
     stroke="url(#accentGrad)"
-    stroke-width="16"
+    stroke-width="18"
     stroke-linecap="round"
     filter="url(#glowEffect)"
   />
@@ -93,7 +95,7 @@
        L220 500"
     fill="none"
     stroke="url(#accentGrad)"
-    stroke-width="14"
+    stroke-width="16"
     stroke-linecap="round"
     filter="url(#glowEffect)"
   />
@@ -105,35 +107,26 @@
        L804 500"
     fill="none"
     stroke="url(#accentGrad)"
-    stroke-width="14"
+    stroke-width="16"
     stroke-linecap="round"
     filter="url(#glowEffect)"
   />
 
   <!-- Drawstring ball - left -->
-  <circle cx="212" cy="520" r="32" fill="#B8F25B" filter="url(#glowEffect)"/>
+  <circle cx="212" cy="520" r="36" fill="#B8F25B" filter="url(#glowEffect)"/>
+  <circle cx="212" cy="520" r="20" fill="#CCFF66"/>
 
   <!-- Drawstring ball - right -->
-  <circle cx="812" cy="520" r="32" fill="#B8F25B" filter="url(#glowEffect)"/>
+  <circle cx="812" cy="520" r="36" fill="#B8F25B" filter="url(#glowEffect)"/>
+  <circle cx="812" cy="520" r="20" fill="#CCFF66"/>
 
   <!-- Center crypto/coin symbol -->
   <g transform="translate(512, 640)">
     <!-- Coin circle -->
-    <circle cx="0" cy="0" r="110" fill="#0D1411" stroke="#B8F25B" stroke-width="6"/>
+    <circle cx="0" cy="0" r="110" fill="#0D1411" stroke="#B8F25B" stroke-width="7"/>
 
     <!-- Inner ring -->
-    <circle cx="0" cy="0" r="85" fill="none" stroke="#B8F25B" stroke-width="3" opacity="0.5"/>
+    <circle cx="0" cy="0" r="85" fill="none" stroke="#B8F25B" stroke-width="4" opacity="0.6"/>
 
-    <!-- P symbol -->
-    <text
-      x="0"
-      y="25"
-      text-anchor="middle"
-      font-family="system-ui, -apple-system, sans-serif"
-      font-size="140"
-      font-weight="700"
-      fill="#B8F25B"
-      filter="url(#glowEffect)"
-    >P</text>
   </g>
 </svg>
