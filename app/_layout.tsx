@@ -155,6 +155,13 @@ export default function RootLayout() {
                       gestureEnabled: true,
                     }}
                   />
+                  <Stack.Screen
+                    name="notifications"
+                    options={{
+                      animation: 'slide_from_right',
+                      gestureEnabled: true,
+                    }}
+                  />
                 </Stack>
                 <StatusBar style="light" />
 

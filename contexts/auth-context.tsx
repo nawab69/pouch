@@ -53,6 +53,8 @@ export function AuthProvider({ children }: { children: ReactNode }) {
 
   const appState = useRef<AppStateStatus>(AppState.currentState);
   const backgroundTime = useRef<number>(Date.now());
+  const unlockTime = useRef<number>(0);
+  const wentToBackground = useRef<boolean>(false);
 
   // Initialize auth state
   useEffect(() => {
@@ -87,22 +89,43 @@ export function AuthProvider({ children }: { children: ReactNode }) {
 
   const handleAppStateChange = useCallback(
     (nextAppState: AppStateStatus) => {
-      // App going to background
+      // App going to background/inactive
       if (appState.current === 'active' && nextAppState.match(/inactive|background/)) {
         backgroundTime.current = Date.now();
+        // Track if we actually went to background (not just inactive from Face ID/system dialogs)
+        if (nextAppState === 'background') {
+          wentToBackground.current = true;
+        }
+      }
+
+      // Track transition to background from inactive state as well
+      if (appState.current === 'inactive' && nextAppState === 'background') {
+        wentToBackground.current = true;
       }
 
       // App coming to foreground
       if (appState.current.match(/inactive|background/) && nextAppState === 'active') {
         if (lockSettings.isEnabled && !isLocked) {
-          if (lockSettings.lockOnBackground) {
-            // Lock immediately when returning from background
-            lock();
-          } else if (shouldLockAfterBackground(lockSettings.autoLockTimeout)) {
-            // Lock if timeout exceeded
-            lock();
+          // Skip locking if we just unlocked (biometric prompt causes inactive→active transition)
+          const timeSinceUnlock = Date.now() - unlockTime.current;
+          if (timeSinceUnlock < 2000) {
+            wentToBackground.current = false;
+            appState.current = nextAppState;
+            return;
+          }
+
+          // Only lock if we actually went to background (not just inactive from Face ID)
+          if (wentToBackground.current) {
+            if (lockSettings.lockOnBackground) {
+              // Lock immediately when returning from background
+              lock();
+            } else if (shouldLockAfterBackground(lockSettings.autoLockTimeout)) {
+              // Lock if timeout exceeded
+              lock();
+            }
           }
         }
+        wentToBackground.current = false;
       }
 
       appState.current = nextAppState;
@@ -176,6 +199,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
 
   const unlock = useCallback(() => {
     setIsLocked(false);
+    unlockTime.current = Date.now();
     setFailedAttempts(0);
     AsyncStorage.removeItem(AUTH_STORAGE_KEYS.FAILED_ATTEMPTS);
     AsyncStorage.removeItem(AUTH_STORAGE_KEYS.LOCKOUT_END_TIME);

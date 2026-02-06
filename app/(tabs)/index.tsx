@@ -9,9 +9,11 @@ import { ActionButton } from '@/components/action-button';
 import { AssetItem } from '@/components/asset-item';
 import { NetworkBadge } from '@/components/network-badge';
 import { AccountSwitcher } from '@/components/account-switcher';
+import { ProfileSheet } from '@/components/profile-sheet';
 import { useWallet } from '@/hooks/use-wallet';
 import { useNetwork } from '@/hooks/use-network';
 import { useTokens } from '@/hooks/use-tokens';
+import { useNotifications } from '@/contexts/notification-context';
 import { formatAddress } from '@/services/blockchain';
 
 const { width: SCREEN_WIDTH } = Dimensions.get('window');
@@ -33,9 +35,11 @@ export default function HomeScreen() {
     networkId: selectedNetworkId,
     networkType,
   });
+  const { unreadCount } = useNotifications();
 
   const [refreshing, setRefreshing] = useState(false);
   const [showAccountSwitcher, setShowAccountSwitcher] = useState(false);
+  const [showProfile, setShowProfile] = useState(false);
 
   const onRefresh = useCallback(async () => {
     setRefreshing(true);
@@ -129,8 +133,9 @@ export default function HomeScreen() {
       >
         <Header
           walletAddress={displayAddress}
-          onProfilePress={() => {}}
-          onNotificationPress={() => {}}
+          unreadCount={unreadCount}
+          onProfilePress={() => setShowProfile(true)}
+          onNotificationPress={() => router.push('/notifications')}
           onWalletPress={() => setShowAccountSwitcher(true)}
         />
 
@@ -210,6 +215,17 @@ export default function HomeScreen() {
         onSelectAccount={selectAccount}
         onAddAccount={addAccount}
         onRenameAccount={renameAccount}
+      />
+
+      {/* Profile Sheet */}
+      <ProfileSheet
+        visible={showProfile}
+        onClose={() => setShowProfile(false)}
+        selectedAccount={selectedAccount}
+        walletAddress={walletAddress || ''}
+        selectedNetwork={selectedNetwork}
+        networkType={networkType}
+        totalBalanceUsd={totalBalanceUsd}
       />
     </SafeAreaView>
   );

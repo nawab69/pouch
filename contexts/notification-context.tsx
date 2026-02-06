@@ -17,6 +17,7 @@ import {
   unregisterDevice,
   addAddresses,
 } from '@/services/notifications/registration';
+import { fetchUnreadCount } from '@/services/notifications/history';
 
 const NOTIFICATIONS_ENABLED_KEY = '@pouch/notifications_enabled';
 const DEVICE_ID_KEY = '@pouch/notification_device_id';
@@ -26,6 +27,9 @@ interface NotificationContextType {
   isLoading: boolean;
   permissionStatus: Notifications.PermissionStatus | null;
   pushToken: string | null;
+  deviceId: string | null;
+  unreadCount: number;
+  refreshUnreadCount: () => Promise<void>;
   enableNotifications: () => Promise<boolean>;
   disableNotifications: () => Promise<void>;
   registerAddresses: (addresses: string[]) => Promise<void>;
@@ -44,6 +48,7 @@ export function NotificationProvider({ children }: NotificationProviderProps) {
   const [permissionStatus, setPermissionStatus] = useState<Notifications.PermissionStatus | null>(null);
   const [pushToken, setPushToken] = useState<string | null>(null);
   const [deviceId, setDeviceId] = useState<string | null>(null);
+  const [unreadCount, setUnreadCount] = useState(0);
 
   const router = useRouter();
   const notificationListener = useRef<Notifications.EventSubscription | null>(null);
@@ -59,7 +64,7 @@ export function NotificationProvider({ children }: NotificationProviderProps) {
     // Foreground notification handler
     notificationListener.current = addNotificationReceivedListener((notification) => {
       console.log('Notification received:', notification.request.content);
-      // You could show an in-app toast/alert here
+      setUnreadCount((prev) => prev + 1);
     });
 
     // Notification tap handler
@@ -85,6 +90,23 @@ export function NotificationProvider({ children }: NotificationProviderProps) {
     const subscription = AppState.addEventListener('change', handleAppStateChange);
     return () => subscription.remove();
   }, [isEnabled, pushToken]);
+
+  const refreshUnreadCount = useCallback(async () => {
+    if (!deviceId) return;
+    try {
+      const count = await fetchUnreadCount(deviceId);
+      setUnreadCount(count);
+    } catch (error) {
+      console.warn('Failed to fetch unread count:', error);
+    }
+  }, [deviceId]);
+
+  // Fetch unread count when enabled and deviceId is available
+  useEffect(() => {
+    if (isEnabled && deviceId) {
+      refreshUnreadCount();
+    }
+  }, [isEnabled, deviceId, refreshUnreadCount]);
 
   const handleAppStateChange = async (nextState: AppStateStatus) => {
     if (nextState === 'active' && isEnabled && pushToken) {
@@ -244,6 +266,9 @@ export function NotificationProvider({ children }: NotificationProviderProps) {
         isLoading,
         permissionStatus,
         pushToken,
+        deviceId,
+        unreadCount,
+        refreshUnreadCount,
         enableNotifications,
         disableNotifications,
         registerAddresses,
