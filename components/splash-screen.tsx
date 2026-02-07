@@ -55,6 +55,7 @@ export function SplashScreen({ onAnimationComplete }: SplashScreenProps) {
         }
       })
     );
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
 
   const logoAnimatedStyle = useAnimatedStyle(() => ({

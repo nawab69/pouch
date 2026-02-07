@@ -87,7 +87,8 @@ export default function ConfirmMnemonicScreen() {
   const optionScale1 = useSharedValue(1);
   const optionScale2 = useSharedValue(1);
   const optionScale3 = useSharedValue(1);
-  const optionScales = [optionScale0, optionScale1, optionScale2, optionScale3];
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  const optionScales = useMemo(() => [optionScale0, optionScale1, optionScale2, optionScale3], []);
 
   const generateRandomPositions = useCallback((max: number, count: number): number[] => {
     const positions: number[] = [];

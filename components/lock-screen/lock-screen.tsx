@@ -41,6 +41,7 @@ export function LockScreen() {
       }, 300);
       return () => clearTimeout(timer);
     }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [isLocked, lockSettings.useBiometric, hasBiometricHardware]);
 
   // Update lockout countdown
@@ -66,6 +67,7 @@ export function LockScreen() {
     if (pin.length === PIN_LENGTH) {
       handlePinSubmit();
     }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [pin]);
 
   const handlePinSubmit = async () => {

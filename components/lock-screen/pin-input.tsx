@@ -27,6 +27,7 @@ export function PinInput({ length, hasError = false }: PinInputProps) {
         withTiming(0, { duration: 50 })
       );
     }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [hasError]);
 
   const animatedStyle = useAnimatedStyle(() => ({

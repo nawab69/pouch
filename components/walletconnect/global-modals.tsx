@@ -18,7 +18,7 @@ export function WalletConnectGlobalModals() {
   const handleProposalClose = useCallback(async () => {
     try {
       await rejectProposal();
-    } catch (error) {
+    } catch (_error) {
       // Silently ignore - proposal may have been approved already
     }
   }, [rejectProposal]);
@@ -26,7 +26,7 @@ export function WalletConnectGlobalModals() {
   const handleRequestClose = useCallback(async () => {
     try {
       await rejectRequest('User cancelled');
-    } catch (error) {
+    } catch (_error) {
       // Silently ignore - request may have been handled already
     }
   }, [rejectRequest]);

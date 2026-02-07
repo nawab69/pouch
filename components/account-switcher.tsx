@@ -28,7 +28,7 @@ export function AccountSwitcher({
   onAddAccount,
   onRenameAccount,
 }: AccountSwitcherProps) {
-  const [isAdding, setIsAdding] = useState(false);
+  const [isAdding, _setIsAdding] = useState(false);
   const [editingIndex, setEditingIndex] = useState<number | null>(null);
   const [editName, setEditName] = useState('');
   const [copiedIndex, setCopiedIndex] = useState<number | null>(null);

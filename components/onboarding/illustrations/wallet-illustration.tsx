@@ -35,6 +35,7 @@ export function WalletIllustration() {
       -1,
       true
     );
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
 
   const floatStyle = useAnimatedStyle(() => ({

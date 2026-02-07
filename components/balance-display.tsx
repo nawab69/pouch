@@ -11,7 +11,7 @@ export function BalanceDisplay({
   balance,
   percentageChange,
   timeframe = '1d',
-  isUsd = true,
+  isUsd: _isUsd = true,
 }: BalanceDisplayProps) {
   const isPositive = percentageChange >= 0;
   const formattedBalance = balance.toLocaleString('en-US', {

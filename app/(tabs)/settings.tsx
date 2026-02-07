@@ -1,7 +1,8 @@
 import { useState } from 'react';
-import { View, Text, Pressable, Alert, Switch, ScrollView } from 'react-native';
+import { View, Text, Pressable, Alert, Switch, ScrollView, Modal } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { useRouter } from 'expo-router';
+import AsyncStorage from '@react-native-async-storage/async-storage';
 import Feather from '@expo/vector-icons/Feather';
 import { useOnboarding } from '@/hooks/use-onboarding';
 import { useWallet } from '@/hooks/use-wallet';
@@ -10,6 +11,9 @@ import { useAuth } from '@/hooks/use-auth';
 import { useNotifications } from '@/hooks/use-notifications';
 import { NetworkSelector } from '@/components/network-selector';
 import { RecoveryPhraseViewer } from '@/components/settings/recovery-phrase-viewer';
+import { PinConfirmModal } from '@/components/pin-confirm-modal';
+import { verifyPin } from '@/services/auth/pin-service';
+import { clearContacts } from '@/services/contacts/contact-service';
 
 export default function SettingsScreen() {
   const router = useRouter();
@@ -28,6 +32,8 @@ export default function SettingsScreen() {
   } = useNetwork();
 
   const [showRecoveryPhrase, setShowRecoveryPhrase] = useState(false);
+  const [showResetModal, setShowResetModal] = useState(false);
+  const [showPinConfirm, setShowPinConfirm] = useState(false);
 
   // Show loading state while context initializes
   if (isLoading) {
@@ -241,6 +247,29 @@ export default function SettingsScreen() {
           />
         </View>
 
+        {/* Reset Wallet */}
+        <View className="px-5 mb-6">
+          <Pressable
+            onPress={() => setShowResetModal(true)}
+            className="bg-wallet-negative/10 rounded-xl p-4 active:opacity-70"
+          >
+            <View className="flex-row items-center gap-3">
+              <View className="w-9 h-9 rounded-full bg-wallet-negative/20 items-center justify-center">
+                <Feather name="alert-triangle" size={18} color="#FF3B30" />
+              </View>
+              <View className="flex-1">
+                <Text className="text-wallet-negative font-semibold">
+                  Reset Wallet
+                </Text>
+                <Text className="text-wallet-negative/70 text-sm">
+                  Erase all data and start over
+                </Text>
+              </View>
+              <Feather name="chevron-right" size={20} color="#FF3B30" />
+            </View>
+          </Pressable>
+        </View>
+
         {/* Dev: Reset Buttons */}
         {__DEV__ && (
           <View className="px-5 mb-8">
@@ -300,6 +329,126 @@ export default function SettingsScreen() {
       <RecoveryPhraseViewer
         visible={showRecoveryPhrase}
         onClose={() => setShowRecoveryPhrase(false)}
+      />
+
+      {/* Reset Wallet Warning Modal */}
+      <Modal
+        visible={showResetModal}
+        animationType="slide"
+        presentationStyle="pageSheet"
+        onRequestClose={() => setShowResetModal(false)}
+      >
+        <View className="flex-1 bg-wallet-bg">
+          <SafeAreaView className="flex-1" edges={['top', 'bottom']}>
+            {/* Close button */}
+            <View className="flex-row justify-end px-5 pt-2">
+              <Pressable
+                onPress={() => setShowResetModal(false)}
+                className="w-8 h-8 rounded-full bg-wallet-card items-center justify-center active:opacity-70"
+              >
+                <Feather name="x" size={18} color="#8E8E93" />
+              </Pressable>
+            </View>
+
+            <View className="flex-1 px-6 pt-8 items-center">
+              {/* Warning Icon */}
+              <View className="w-16 h-16 rounded-full bg-wallet-negative/15 items-center justify-center mb-6">
+                <Feather name="alert-triangle" size={32} color="#FF3B30" />
+              </View>
+
+              <Text className="text-2xl font-bold text-wallet-text text-center mb-3">
+                Reset Wallet?
+              </Text>
+
+              <Text className="text-wallet-text-secondary text-center text-base leading-6 mb-8">
+                This action cannot be undone. All of the following will be permanently deleted:
+              </Text>
+
+              {/* Consequences list */}
+              <View className="w-full bg-wallet-card rounded-xl p-4 gap-3 mb-8">
+                <View className="flex-row items-center gap-3">
+                  <Feather name="key" size={16} color="#FF3B30" />
+                  <Text className="text-wallet-text text-sm flex-1">
+                    Your PIN and security settings
+                  </Text>
+                </View>
+                <View className="flex-row items-center gap-3">
+                  <Feather name="credit-card" size={16} color="#FF3B30" />
+                  <Text className="text-wallet-text text-sm flex-1">
+                    All wallet accounts and keys
+                  </Text>
+                </View>
+                <View className="flex-row items-center gap-3">
+                  <Feather name="users" size={16} color="#FF3B30" />
+                  <Text className="text-wallet-text text-sm flex-1">
+                    Saved contacts and addresses
+                  </Text>
+                </View>
+                <View className="flex-row items-center gap-3">
+                  <Feather name="bell" size={16} color="#FF3B30" />
+                  <Text className="text-wallet-text text-sm flex-1">
+                    Notification preferences
+                  </Text>
+                </View>
+              </View>
+
+              <View className="w-full bg-wallet-accent/10 rounded-xl p-4 mb-8">
+                <Text className="text-wallet-accent text-sm text-center leading-5">
+                  Make sure you have your recovery phrase saved before continuing. Without it, you will not be able to restore your wallet.
+                </Text>
+              </View>
+            </View>
+
+            {/* Bottom buttons */}
+            <View className="px-6 pb-4 gap-3">
+              <Pressable
+                onPress={() => {
+                  setShowResetModal(false);
+                  setShowPinConfirm(true);
+                }}
+                className="bg-wallet-negative rounded-xl py-4 items-center active:opacity-70"
+              >
+                <Text className="text-white font-semibold text-base">
+                  Reset Wallet
+                </Text>
+              </Pressable>
+
+              <Pressable
+                onPress={() => setShowResetModal(false)}
+                className="rounded-xl py-4 items-center active:opacity-70"
+              >
+                <Text className="text-wallet-text-secondary font-medium text-base">
+                  Cancel
+                </Text>
+              </Pressable>
+            </View>
+          </SafeAreaView>
+        </View>
+      </Modal>
+
+      {/* PIN Confirmation for Reset */}
+      <PinConfirmModal
+        visible={showPinConfirm}
+        title="Confirm Reset"
+        description="Enter your PIN to reset wallet"
+        onClose={() => setShowPinConfirm(false)}
+        onConfirm={async (pin: string) => {
+          const isValid = await verifyPin(pin);
+          if (!isValid) return false;
+
+          await removePin();
+          await resetWallet();
+          await resetOnboarding();
+          await clearContacts();
+          await AsyncStorage.multiRemove([
+            '@pouch/notifications_enabled',
+            '@pouch/notification_device_id',
+          ]);
+
+          setShowPinConfirm(false);
+          router.replace('/onboarding');
+          return true;
+        }}
       />
     </SafeAreaView>
   );

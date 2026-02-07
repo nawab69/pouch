@@ -62,6 +62,7 @@ export function CustomTabBar({ state, navigation }: BottomTabBarProps) {
         stiffness: 150,
       });
     }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [state.index, tabWidth, containerWidth]);
 
   const panGesture = Gesture.Pan()

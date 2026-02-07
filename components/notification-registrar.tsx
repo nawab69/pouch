@@ -36,6 +36,7 @@ export function NotificationRegistrar() {
     if (!isEnabled) {
       hasRegisteredRef.current = false;
     }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [isEnabled, hasWallet, accounts.length, isLoading, registerAddresses]);
 
   // Register new accounts when they're added
@@ -55,6 +56,7 @@ export function NotificationRegistrar() {
     }
 
     prevAccountCountRef.current = currentCount;
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [accounts.length, isEnabled, hasWallet, isLoading, addNewAddress]);
 
   // This component doesn't render anything

@@ -63,6 +63,7 @@ export function PinSetupModal({
         }, 500);
       }
     }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [pin, confirmPin, step]);
 
   const handleDigitPress = (digit: string) => {

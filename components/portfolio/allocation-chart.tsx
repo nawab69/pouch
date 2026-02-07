@@ -36,12 +36,12 @@ export function AllocationChart({
     const availableArc = 2 * Math.PI - totalGap;
 
     let currentAngle = -Math.PI / 2; // Start at top
-    const result: Array<{
+    const result: {
       allocation: TokenAllocation;
       path: ReturnType<typeof Skia.Path.Make>;
       startAngle: number;
       endAngle: number;
-    }> = [];
+    }[] = [];
 
     for (const allocation of allocations) {
       const sweepAngle = (allocation.percentage / 100) * availableArc;

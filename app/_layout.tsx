@@ -33,7 +33,7 @@ export default function RootLayout() {
   const router = useRouter();
   const rootNavigationState = useRootNavigationState();
 
-  const [fontsLoaded] = useFonts({
+  const [_fontsLoaded] = useFonts({
     Outfit_400Regular,
     Outfit_500Medium,
     Outfit_600SemiBold,

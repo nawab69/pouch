@@ -416,7 +416,7 @@ export default function SwapScreen() {
                 No Liquidity Available
               </Text>
               <Text className="text-wallet-text-secondary text-sm mt-1">
-                There's no liquidity pool for this token pair on the current network. Try a different token pair.
+                There&apos;s no liquidity pool for this token pair on the current network. Try a different token pair.
               </Text>
             </View>
             <Pressable onPress={clearError} className="p-1">

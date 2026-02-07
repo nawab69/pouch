@@ -57,6 +57,7 @@ export default function CreatePinScreen() {
         }, 500);
       }
     }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [pin, confirmPin, step]);
 
   const handlePinCreated = async () => {

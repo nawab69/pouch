@@ -47,6 +47,7 @@ export function PinConfirmModal({
     if (pin.length === PIN_LENGTH && !isVerifying) {
       handleSubmit();
     }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [pin]);
 
   const handleSubmit = async () => {

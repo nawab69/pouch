@@ -21,7 +21,7 @@ type ViewState = 'warning' | 'auth' | 'viewing';
 const AUTO_HIDE_SECONDS = 60;
 
 export function RecoveryPhraseViewer({ visible, onClose }: RecoveryPhraseViewerProps) {
-  const { lockSettings, biometricType, hasBiometricHardware } = useAuth();
+  const { lockSettings, biometricType: _biometricType, hasBiometricHardware } = useAuth();
   const { getMnemonic } = useWallet();
 
   const [viewState, setViewState] = useState<ViewState>('warning');
@@ -99,6 +99,7 @@ export function RecoveryPhraseViewer({ visible, onClose }: RecoveryPhraseViewerP
     if (pin.length === PIN_LENGTH && viewState === 'auth') {
       handlePinSubmit();
     }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [pin, viewState]);
 
   const loadMnemonic = async (enteredPin: string) => {

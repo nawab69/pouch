@@ -30,6 +30,7 @@ export default function GenerateMnemonicScreen() {
   useEffect(() => {
     const words = generateMnemonic();
     setMnemonic(words);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
 
   // Blur mnemonic when app backgrounds

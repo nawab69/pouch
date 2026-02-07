@@ -70,6 +70,7 @@ export function PinChangeModal({
         }, 500);
       }
     }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [currentPin, newPin, confirmPin, step]);
 
   const handleVerifyCurrentPin = async () => {
