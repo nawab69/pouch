@@ -14,10 +14,10 @@
         "NSFaceIDUsageDescription": "Allow Pouch to use Face ID to unlock your wallet",
         "ITSAppUsesNonExemptEncryption": false
       },
-      "bundleIdentifier": "com.nawabkibria12.pouch",
-      "appleTeamId": "RT4AFUT2CR"
+      "bundleIdentifier": "com.nawabkibria12.pouch"
     },
     "android": {
+      "googleServicesFile": "./google-services.json",
       "adaptiveIcon": {
         "backgroundColor": "#0D1411",
         "foregroundImage": "./assets/images/android-icon-foreground.png",
@@ -30,7 +30,7 @@
         "android.permission.USE_BIOMETRIC",
         "android.permission.USE_FINGERPRINT"
       ],
-      "package": "com.nawabkibria12.pouch"
+      "package": "com.mithium.pouch"
     },
     "web": {
       "bundler": "metro",

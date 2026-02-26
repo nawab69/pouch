@@ -1,15 +1,15 @@
-import { useRef, useState, useCallback } from 'react';
-import { View, StyleSheet, Dimensions, FlatList, ViewToken, NativeSyntheticEvent, NativeScrollEvent, ListRenderItemInfo } from 'react-native';
 import { useRouter } from 'expo-router';
-import { useSafeAreaInsets } from 'react-native-safe-area-context';
+import { useCallback, useRef, useState } from 'react';
+import { Dimensions, FlatList, ListRenderItemInfo, NativeScrollEvent, NativeSyntheticEvent, StyleSheet, View, ViewToken } from 'react-native';
 import { useSharedValue } from 'react-native-reanimated';
-import Svg, { Defs, RadialGradient, Stop, Rect } from 'react-native-svg';
+import { useSafeAreaInsets } from 'react-native-safe-area-context';
+import Svg, { Defs, RadialGradient, Rect, Stop } from 'react-native-svg';
 
-import { OnboardingPage } from '@/components/onboarding/onboarding-page';
-import { OnboardingNavigation } from '@/components/onboarding/onboarding-navigation';
-import { WalletIllustration } from '@/components/onboarding/illustrations/wallet-illustration';
 import { PortfolioIllustration } from '@/components/onboarding/illustrations/portfolio-illustration';
 import { RocketIllustration } from '@/components/onboarding/illustrations/rocket-illustration';
+import { WalletIllustration } from '@/components/onboarding/illustrations/wallet-illustration';
+import { OnboardingNavigation } from '@/components/onboarding/onboarding-navigation';
+import { OnboardingPage } from '@/components/onboarding/onboarding-page';
 import { useOnboarding } from '@/hooks/use-onboarding';
 
 const { width: SCREEN_WIDTH, height: SCREEN_HEIGHT } = Dimensions.get('window');
@@ -25,9 +25,9 @@ interface PageData {
 const PAGES: PageData[] = [
   {
     id: '1',
-    title: 'Your Crypto,',
-    accentWord: 'Secured',
-    description: 'Keep your digital assets safe with military-grade encryption and biometric protection.',
+    title: 'Secure Your',
+    accentWord: 'Freedom',
+    description: 'A non-custodial wallet where you control your keys.',
     illustration: <WalletIllustration />,
   },
   {
@@ -41,7 +41,7 @@ const PAGES: PageData[] = [
     id: '3',
     title: 'Ready to',
     accentWord: 'Start?',
-    description: 'Join millions of users who trust Pouch to manage their crypto journey.',
+    description: 'Create a new wallet or import an existing one in seconds.',
     illustration: <RocketIllustration />,
   },
 ];

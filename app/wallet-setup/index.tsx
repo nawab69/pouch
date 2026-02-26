@@ -1,9 +1,9 @@
-import { View, Text, StyleSheet, ScrollView } from 'react-native';
-import { SafeAreaView } from 'react-native-safe-area-context';
+import { WalletCreateIllustration } from '@/components/wallet-setup/illustrations/wallet-create-illustration';
+import { WalletChoiceCard } from '@/components/wallet-setup/wallet-choice-card';
 import { useRouter } from 'expo-router';
 import { StatusBar } from 'expo-status-bar';
-import { WalletChoiceCard } from '@/components/wallet-setup/wallet-choice-card';
-import { WalletCreateIllustration } from '@/components/wallet-setup/illustrations/wallet-create-illustration';
+import { ScrollView, StyleSheet, Text, View } from 'react-native';
+import { SafeAreaView } from 'react-native-safe-area-context';
 
 export default function WalletSetupChoiceScreen() {
   const router = useRouter();
@@ -38,9 +38,7 @@ export default function WalletSetupChoiceScreen() {
             <Text style={styles.accentWord}>Pouch</Text>
           </View>
 
-          <Text style={styles.description}>
-            Your secure gateway to the world of crypto. Create a new wallet or import an existing one to get started.
-          </Text>
+          <Text style={styles.description}>A non-custodial wallet built for true ownership. Create or import your wallet to get started.</Text>
 
           {/* Choice cards */}
           <View style={styles.cardsContainer}>
@@ -81,8 +79,8 @@ const styles = StyleSheet.create({
   illustrationArea: {
     justifyContent: 'center',
     alignItems: 'center',
-    paddingTop: 20,
-    paddingBottom: 10,
+    paddingTop: 8,
+    paddingBottom: 8,
   },
   contentArea: {
     flex: 1,
